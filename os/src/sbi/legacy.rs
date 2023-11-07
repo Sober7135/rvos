@@ -2,8 +2,9 @@
 #![allow(unused)]
 use super::*;
 
-pub(crate) struct EID;
-impl EID {
+pub(crate) struct Eid;
+
+impl Eid {
     pub(crate) const CONSOLE_PUTCHAR: usize = 0x01;
 }
 

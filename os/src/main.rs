@@ -54,7 +54,7 @@ fn rust_main() {
     warn!("THIS IS WARN");
     error!("THIS IS ERROR");
 
-    print!("Hello, World!\n");
+    println!("Hello, World!");
 
     // panic!("THIS IS PANIC");
 
