@@ -18,8 +18,8 @@ pub(crate) fn print(args: fmt::Arguments) {
 
 #[macro_export]
 macro_rules! print {
-    ($($($arg: tt)+)*) => {
-        $crate::console::print(format_args!($($($arg)+)?))
+    ($($arg: tt)*) => {
+        $crate::console::print(format_args!($($arg)?))
     };
 }
 

@@ -1,4 +1,4 @@
 [workspace]
-members = ["os"]
+members = ["os", "user"]
 
 resolver = "2"

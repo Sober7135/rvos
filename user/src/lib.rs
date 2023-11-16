@@ -21,7 +21,8 @@ fn clear_bss() {
 }
 
 #[no_mangle]
-extern "C" fn _start() -> ! {
+#[link_section = ".text.entry"]
+pub extern "C" fn _start() -> ! {
     clear_bss();
     exit(main());
     unreachable!("Unreachable! The program must be terminated")
