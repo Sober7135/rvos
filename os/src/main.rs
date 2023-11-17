@@ -15,6 +15,7 @@ mod sbi;
 mod sync;
 mod syscall;
 mod trap;
+mod stack_trace;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -62,7 +63,7 @@ fn rust_main() {
 
     println!("Hello, World!");
 
-    // panic!("THIS IS PANIC");
+    panic!("THIS IS PANIC");
     trap::init();
     batch::init();
     batch::run_next_app();
