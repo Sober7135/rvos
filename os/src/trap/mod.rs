@@ -5,7 +5,7 @@ use crate::{
     syscall::{syscall, Syscall},
 };
 use core::arch::global_asm;
-use log::{error, info, trace};
+use log::error;
 use riscv::register::{
     scause::{self, Exception, Trap},
     sstatus::Sstatus,

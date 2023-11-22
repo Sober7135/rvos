@@ -1,7 +1,4 @@
-use core::arch::asm;
-
 use log::info;
-
 use crate::{batch::run_next_app, print};
 pub(crate) enum Syscall {
     Read,
@@ -10,6 +7,7 @@ pub(crate) enum Syscall {
 }
 
 impl Syscall {
+    #[allow(unused)]
     fn value(&self) -> usize {
         match *self {
             Self::Read => 63,

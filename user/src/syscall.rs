@@ -9,7 +9,7 @@ enum Syscall {
 }
 
 impl Syscall {
-    fn value(&self) -> usize {
+    pub(crate) fn value(&self) -> usize {
         match *self {
             Self::Read => 63,
             Self::Write => 64,
