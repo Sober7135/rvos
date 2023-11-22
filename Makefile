@@ -7,25 +7,15 @@ USER_SOURCE_DIR = $(USER_DIR)/src
 TARGET_DIR = target/riscv64gc-unknown-none-elf/$(MODE)
 vi = nvim --noplugin
 
-define strip_bin
-		rust-objcopy --strip-all $(TARGET_DIR)/$(1) -O binary  $(TARGET_DIR)/$(1).bin	
-endef
-
 os: $(OS_SOURCE_DIR)/* user
 		cd $(OS_DIR) && cargo build --$(MODE)
-		# rust-objcopy --strip-all $(TARGET_DIR)/os -O binary  $(TARGET_DIR)/os.bin	
-		$(call strip_bin,os)
+		objcopy --strip-all $(TARGET_DIR)/os -O binary -I elf64-little  $(TARGET_DIR)/os.bin	
 	
 objdump: os
-			rust-objdump -h $(TARGET_DIR)/os  | $(vi) -
+	objdump -h $(TARGET_DIR)/os  | $(vi) -
 			
 user:  $(USER_DIR)/*
-		cd $(USER_DIR) && cargo build --$(MODE)
-		$(call strip_bin,00hello_world)
-		$(call strip_bin,01store_fault)
-		$(call strip_bin,02power)
-		$(call strip_bin,03priv_inst)
-		$(call strip_bin,04priv_csr)
+		cd $(USER_DIR) && ./build.py 
 
 qemu: os user
 		qemu-system-riscv64 \

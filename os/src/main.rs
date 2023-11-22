@@ -12,10 +12,10 @@ mod console;
 mod lang_items;
 mod logger;
 mod sbi;
+mod stack_trace;
 mod sync;
 mod syscall;
 mod trap;
-mod stack_trace;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -55,16 +55,15 @@ fn rust_main() {
     print_segment_info("bss", sbss as usize, ebss as usize);
     print_segment_info("stack", stack_lower_bound as usize, stack_top as usize);
 
-    trace!("THIS IS TRACE");
-    info!("THIS IS INFO");
-    debug!("THIS IS DEBUG");
-    warn!("THIS IS WARN");
-    error!("THIS IS ERROR");
+    trace!("[TEST] THIS IS TRACE");
+    info!("[TEST] THIS IS INFO");
+    debug!("[TEST] THIS IS DEBUG");
+    warn!("[TEST] THIS IS WARN");
+    error!("[TEST] THIS IS ERROR");
 
-    println!("Hello, World!");
+    println!("[TEST] Hello, World!");
 
     trap::init();
     batch::init();
     batch::run_next_app();
-
 }
