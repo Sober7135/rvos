@@ -55,13 +55,13 @@ fn rust_main() {
     print_segment_info("bss", sbss as usize, ebss as usize);
     print_segment_info("stack", stack_lower_bound as usize, stack_top as usize);
 
-    trace!("[TEST] THIS IS TRACE");
-    info!("[TEST] THIS IS INFO");
-    debug!("[TEST] THIS IS DEBUG");
-    warn!("[TEST] THIS IS WARN");
-    error!("[TEST] THIS IS ERROR");
+    trace!("[kernel][TEST] THIS IS TRACE");
+    info!("[kernel][TEST] THIS IS INFO");
+    debug!("[kernel][TEST] THIS IS DEBUG");
+    warn!("[kernel][TEST] THIS IS WARN");
+    error!("[kernel][TEST] THIS IS ERROR");
 
-    println!("[TEST] Hello, World!");
+    println!("[kernel][TEST] Hello, World!");
 
     trap::init();
     batch::init();
