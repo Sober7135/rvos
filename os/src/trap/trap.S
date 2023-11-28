@@ -37,9 +37,10 @@ __alltraps:
     call trap_handler
 
 __restore:
-    # case1: start running app by __restore
-    # case2: back to U after handling trap
-    mv sp, a0 # now sp point to trap context which is pushed by __alltraps or manually by app_init_context, btw sp is pointing to kernel stack
+    # after ch3-coop, __restore is only called by __switch (actually when executing __switch, ra is set to point to __restore)
+    # and that in the __switch, the sp would point to the right place
+    # so, we don't need to pass the address of kernel stack and then we don't need to manipulating a0
+
     # start restore 
     ld t0, 32*8(sp)
     ld t1, 33*8(sp)

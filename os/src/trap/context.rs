@@ -1,5 +1,5 @@
-use riscv::register::sstatus::{self, SPP};
 use super::*;
+use riscv::register::sstatus::{self, SPP};
 
 #[derive(Debug)]
 #[repr(C)] //? why is this necessary

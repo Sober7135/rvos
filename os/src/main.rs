@@ -6,15 +6,17 @@
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
 
-mod batch;
+mod loader;
 #[macro_use]
 mod console;
+mod config;
 mod lang_items;
 mod logger;
 mod sbi;
 mod stack_trace;
 mod sync;
 mod syscall;
+mod task;
 mod trap;
 
 global_asm!(include_str!("entry.asm"));
@@ -64,6 +66,8 @@ fn rust_main() {
     println!("[kernel][TEST] Hello, World!");
 
     trap::init();
-    batch::init();
-    batch::run_next_app();
+    loader::load_apps();
+    task::run_first_task();
+    // TODO
+    todo!()
 }

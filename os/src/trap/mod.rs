@@ -1,8 +1,8 @@
 mod context;
 
 use crate::{
-    batch::run_next_app,
     syscall::{syscall, Syscall},
+    task::{mark_current_exited, run_next_task},
 };
 use core::arch::global_asm;
 use log::error;
@@ -32,11 +32,12 @@ pub(crate) fn trap_handler(ctxt: &mut TrapContext) -> &mut TrapContext {
     match scause.cause() {
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("Illegal instruction");
-            run_next_app();
+            mark_current_exited();
+            run_next_task();
         }
         Trap::Exception(Exception::UserEnvCall) => {
             // trace!("cause = Exception::UserEnvCall");
-            // info!("x17 = {} x10 = {} x11 = {} x12 = {}", ctxt.x[17], ctxt.x[10], ctxt.x[11], ctxt.x[12]);
+            // info!("x17 = {} x10 = {} x11 = {:#x} x12 = {}", ctxt.x[17], ctxt.x[10], ctxt.x[11], ctxt.x[12]);
             ctxt.sepc += 4;
             ctxt.x[10] = syscall(
                 Syscall::from(ctxt.x[17]),
@@ -45,15 +46,18 @@ pub(crate) fn trap_handler(ctxt: &mut TrapContext) -> &mut TrapContext {
         }
         Trap::Exception(Exception::LoadPageFault) => {
             error!("Load page fault");
-            run_next_app();
+            mark_current_exited();
+            run_next_task();
         }
         Trap::Exception(Exception::StorePageFault) => {
             error!("Store page fault");
-            run_next_app();
+            mark_current_exited();
+            run_next_task();
         }
         Trap::Exception(Exception::StoreFault) => {
             error!("Store fault");
-            run_next_app();
+            mark_current_exited();
+            run_next_task();
         }
         _ => {
             error!(
@@ -62,8 +66,8 @@ pub(crate) fn trap_handler(ctxt: &mut TrapContext) -> &mut TrapContext {
                 stval::read(),
                 ctxt
             );
-
-            run_next_app()
+            mark_current_exited();
+            run_next_task();
         }
     }
     ctxt

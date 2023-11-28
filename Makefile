@@ -16,15 +16,17 @@ objdump: os
 			
 user:  $(USER_DIR)/*
 		cd $(USER_DIR) && ./build.py 
+		
+build: os user
 
-qemu: os user
+run: build
 		qemu-system-riscv64 \
   	  	-machine virt \
   	  	-nographic \
   	  	-bios ./bootloader/rustsbi-qemu.bin \
   	  	-device loader,file=$(TARGET_DIR)/os.bin,addr=0x80200000
 
-debug: os
+gdbserver: build
 		qemu-system-riscv64 \
     		-machine virt \
     		-nographic \
@@ -32,8 +34,8 @@ debug: os
     		-device loader,file=$(TARGET_DIR)/os.bin,addr=0x80200000 \
     		-s -S
 
-gdb: os user
-		riscv64-unknown-elf-gdb \
+gdbclient: build
+		riscv64-elf-gdb \
     		-ex 'file target/riscv64gc-unknown-none-elf/release/os' \
     		-ex 'set arch riscv:rv64' \
     		-ex 'target remote localhost:1234'

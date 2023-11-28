@@ -6,14 +6,17 @@ enum Syscall {
     Read,
     Write,
     Exit,
+    Yield,
 }
 
+// https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
 impl Syscall {
     pub(crate) fn value(&self) -> usize {
         match *self {
             Self::Read => 63,
             Self::Write => 64,
             Self::Exit => 93,
+            Self::Yield => 124,
         }
     }
 }
@@ -40,4 +43,8 @@ pub(crate) fn sys_write(fd: usize, buf: &[u8]) -> isize {
 
 pub(crate) fn sys_exit(state: i32) -> isize {
     syscall(Syscall::Exit, [state as usize, 0, 0])
+}
+
+pub(crate) fn sys_yield() -> isize {
+    syscall(Syscall::Yield, [0, 0, 0])
 }
