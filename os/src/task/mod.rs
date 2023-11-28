@@ -10,7 +10,7 @@ mod status;
 mod switch;
 
 use context::TaskContext;
-use log::{debug, info};
+use log::info;
 
 use self::status::TaskStatus;
 use self::switch::__switch;
@@ -80,7 +80,7 @@ pub(crate) fn mark_current_suspend() {
 
 impl TaskManager {
     fn run_first_app(&self) {
-        info!("[kernel] Starting running app_{}", 0);
+        // info!("[kernel] Starting running app_{}", 0);
         let mut inner = self.inner.exclusive_access();
         let task = &mut inner.tasks[0];
         task.status = TaskStatus::Running;
@@ -103,25 +103,17 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].status = TaskStatus::Exited;
-        debug!(
-            "[kernel][mark_current_exit] current={}\n{:#x}",
-            current, inner.tasks[current].context.ra
-        )
     }
 
     fn mark_current_suspend(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].status = TaskStatus::Ready;
-        debug!(
-            "[kernel][mark_current_suspend] current={}\nra={:#x}",
-            current, inner.tasks[current].context.ra
-        )
     }
 
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
-            info!("[kernel] Starting running app_{}", next);
+            // info!("[kernel] Starting running app_{}", next);
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             let current_task_cx_ptr = &mut inner.tasks[current].context as *mut TaskContext;
@@ -129,14 +121,6 @@ impl TaskManager {
             inner.tasks[next].status = TaskStatus::Running;
             inner.current_task = next;
 
-            debug!(
-                "[kernel][run_next_task] current={}\nra={:#x}",
-                current, inner.tasks[current].context.ra
-            );
-            debug!(
-                "[kernel][run_next_task] next={}\nra={:#x}",
-                current, inner.tasks[current].context.ra
-            );
             drop(inner);
 
             unsafe { __switch(current_task_cx_ptr, next_task_context_ptr) }

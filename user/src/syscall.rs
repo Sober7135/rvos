@@ -7,6 +7,7 @@ enum Syscall {
     Write,
     Exit,
     Yield,
+    GetTime,
 }
 
 // https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
@@ -17,6 +18,7 @@ impl Syscall {
             Self::Write => 64,
             Self::Exit => 93,
             Self::Yield => 124,
+            Self::GetTime => 169,
         }
     }
 }
@@ -47,4 +49,8 @@ pub(crate) fn sys_exit(state: i32) -> isize {
 
 pub(crate) fn sys_yield() -> isize {
     syscall(Syscall::Yield, [0, 0, 0])
+}
+
+pub(crate) fn sys_get_time() -> isize {
+    syscall(Syscall::GetTime, [0, 0, 0])
 }

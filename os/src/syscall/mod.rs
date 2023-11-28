@@ -1,6 +1,7 @@
 use crate::{
     print,
     task::{mark_current_exited, mark_current_suspend, run_next_task},
+    timer::get_time_ms,
 };
 use log::info;
 pub(crate) enum Syscall {
@@ -8,6 +9,7 @@ pub(crate) enum Syscall {
     Write,
     Exit,
     Yield,
+    GetTime,
 }
 
 // https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
@@ -19,6 +21,7 @@ impl Syscall {
             Self::Write => 64,
             Self::Exit => 93,
             Self::Yield => 124,
+            Self::GetTime => 169,
         }
     }
 }
@@ -30,6 +33,7 @@ impl From<usize> for Syscall {
             64 => Self::Write,
             93 => Self::Exit,
             124 => Self::Yield,
+            169 => Self::GetTime,
             _ => {
                 panic!("Unsupported syscall!")
             }
@@ -45,6 +49,7 @@ pub(crate) fn syscall(id: Syscall, args: [usize; 3]) -> isize {
         Syscall::Read => unimplemented!(),
         Syscall::Exit => sys_exit(args[0] as i32),
         Syscall::Yield => sys_yield(),
+        Syscall::GetTime => sys_get_time(),
     }
 }
 
@@ -75,4 +80,8 @@ fn sys_yield() -> isize {
     mark_current_suspend();
     run_next_task();
     0
+}
+
+fn sys_get_time() -> isize {
+    get_time_ms() as isize
 }

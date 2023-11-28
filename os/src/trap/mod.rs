@@ -1,13 +1,13 @@
 mod context;
 
-use crate::{
-    syscall::{syscall, Syscall},
-    task::{mark_current_exited, run_next_task},
-};
+use crate::syscall::{syscall, Syscall};
+use crate::task::*;
+use crate::timer::set_next_trigger;
 use core::arch::global_asm;
 use log::error;
 use riscv::register::{
-    scause::{self, Exception, Trap},
+    scause::{self, Exception, Interrupt, Trap},
+    sie,
     sstatus::Sstatus,
     stval, stvec,
 };
@@ -26,10 +26,19 @@ pub(crate) fn init() {
     }
 }
 
+pub(crate) fn enable_timer_interrupt() {
+    unsafe { sie::set_stimer() }
+}
+
 #[no_mangle] // avoid mangle, the assembly inside "trap.S" can call trap_handler
 pub(crate) fn trap_handler(ctxt: &mut TrapContext) -> &mut TrapContext {
     let scause = scause::read();
     match scause.cause() {
+        Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            set_next_trigger();
+            mark_current_suspend();
+            run_next_task();
+        }
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("Illegal instruction");
             mark_current_exited();

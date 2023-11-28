@@ -46,3 +46,7 @@ pub fn exit(state: i32) -> isize {
 pub fn yield_() -> isize {
     sys_yield()
 }
+
+pub fn get_time() -> isize {
+    sys_get_time()
+}

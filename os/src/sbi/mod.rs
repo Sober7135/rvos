@@ -3,6 +3,7 @@
 mod binary;
 mod legacy;
 mod srst;
+mod timer;
 
 use binary::*;
 use core::arch::asm;
@@ -21,3 +22,6 @@ pub(crate) fn shutdown(failure: bool) -> ! {
     unreachable!()
 }
 
+pub(crate) fn set_timer(stime_value: usize) {
+    timer::set_timer(stime_value);
+}

@@ -17,6 +17,7 @@ mod stack_trace;
 mod sync;
 mod syscall;
 mod task;
+mod timer;
 mod trap;
 
 global_asm!(include_str!("entry.asm"));
@@ -65,9 +66,9 @@ fn rust_main() {
 
     println!("[kernel][TEST] Hello, World!");
 
-    trap::init();
     loader::load_apps();
+    trap::init();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
-    // TODO
-    todo!()
 }
