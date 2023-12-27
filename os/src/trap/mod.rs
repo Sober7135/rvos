@@ -1,10 +1,10 @@
 mod context;
 
-use crate::syscall::{syscall, Syscall};
+use crate::syscall::syscall;
 use crate::task::*;
 use crate::timer::set_next_trigger;
 use core::arch::global_asm;
-use log::error;
+use log::{debug, error};
 use riscv::register::{
     scause::{self, Exception, Interrupt, Trap},
     sie,
@@ -24,6 +24,7 @@ pub(crate) fn init() {
     unsafe {
         stvec::write(__alltraps as usize, stvec::TrapMode::Direct);
     }
+    debug!("[kernel] finish initializing the trap handler");
 }
 
 pub(crate) fn enable_timer_interrupt() {
@@ -45,13 +46,8 @@ pub(crate) fn trap_handler(ctxt: &mut TrapContext) -> &mut TrapContext {
             run_next_task();
         }
         Trap::Exception(Exception::UserEnvCall) => {
-            // trace!("cause = Exception::UserEnvCall");
-            // info!("x17 = {} x10 = {} x11 = {:#x} x12 = {}", ctxt.x[17], ctxt.x[10], ctxt.x[11], ctxt.x[12]);
             ctxt.sepc += 4;
-            ctxt.x[10] = syscall(
-                Syscall::from(ctxt.x[17]),
-                [ctxt.x[10], ctxt.x[11], ctxt.x[12]],
-            ) as usize;
+            ctxt.x[10] = syscall(ctxt.x[17], [ctxt.x[10], ctxt.x[11], ctxt.x[12]]) as usize;
         }
         Trap::Exception(Exception::LoadPageFault) => {
             error!("Load page fault");

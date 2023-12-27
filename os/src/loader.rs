@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::config::*;
 use crate::trap::TrapContext;
 use core::arch::asm;
@@ -77,6 +79,7 @@ pub(crate) fn load_apps() {
             );
         };
     }
+    debug!("[kernel] finish loading apps");
 }
 
 pub(crate) fn init_app_cx(i: usize) -> usize {
