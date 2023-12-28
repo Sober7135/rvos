@@ -20,7 +20,7 @@ SECTIONS
   edata = .;
 
   sbss = .;
-  .bss : { *(.bss) *(.bss.stack) }
+  .bss : { *(.bss .bss.*) *(.bss.stack) }
   . = ALIGN(4K);
   ebss = .;
 }

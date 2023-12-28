@@ -2,6 +2,10 @@
 #![no_main]
 #![feature(format_args_nl)]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
+
+extern crate alloc;
+extern crate buddy_system_allocator;
 
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
@@ -12,6 +16,7 @@ mod console;
 mod config;
 mod lang_items;
 mod logger;
+mod mm;
 mod sbi;
 mod stack_trace;
 mod sync;
@@ -45,8 +50,8 @@ fn rust_main() {
         fn erodata();
         fn sdata();
         fn edata();
-        fn sbss();
-        fn ebss();
+        fn sbss(); // start of block start symbol
+        fn ebss(); // end of block start symbol
         fn stack_lower_bound();
         fn stack_top();
     }
@@ -65,6 +70,9 @@ fn rust_main() {
     error!("[kernel][TEST] THIS IS ERROR");
 
     println!("[kernel][TEST] Hello, World!");
+
+    mm::init_heap();
+    mm::heap_test();
 
     loader::load_apps();
     trap::init();
