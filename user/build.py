@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #! ASSUME the current pwd is "./user"
 import os
+from sys import platform
 
 base_address = 0x8040_0000
 step = 0x2_0000
@@ -8,7 +9,15 @@ linker_file = "src/linker.ld"
 target_dir = "../target/riscv64gc-unknown-none-elf/release/"
 objcopy = "objcopy"
 cargo_command = "cargo build --bin {} --release"
-objcopy_command = "objcopy --strip-all {}/{} -O binary -I elf64-little {}/{}.bin"
+objcopy_bin = ""
+
+if platform == "linux":
+    objcopy_bin = "objcopy"
+elif platform == "darwin":
+    objcopy_bin = "llvm-objcopy"
+
+objcopy_command = "{} --strip-all {}/{} -O binary -I elf64-little {}/{}.bin"
+
 
 apps = os.listdir("src/bin")
 apps.sort()
@@ -49,7 +58,7 @@ with open(linker_file, "w+") as f:
 # strip bin
 for app_without_ext in apps_without_ext:
     command = objcopy_command.format(
-        target_dir, app_without_ext, target_dir, app_without_ext
+        objcopy_bin, target_dir, app_without_ext, target_dir, app_without_ext
     )
     print(command)
     os.system(command)

@@ -6,10 +6,17 @@ OS_SOURCE_DIR = $(OS_DIR)/src
 USER_SOURCE_DIR = $(USER_DIR)/src
 TARGET_DIR = target/riscv64gc-unknown-none-elf/$(MODE)
 vi = nvim --noplugin
+OBJCOPY = objcopy
+UNAME = $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+		OBJCOPY = llvm-objcopy
+endif
+
 
 os: $(OS_SOURCE_DIR)/* user
 		cd $(OS_DIR) && cargo build --$(MODE)
-		objcopy --strip-all $(TARGET_DIR)/os -O binary -I elf64-little  $(TARGET_DIR)/os.bin	
+		$(OBJCOPY) --strip-all $(TARGET_DIR)/os -O binary -I elf64-little  $(TARGET_DIR)/os.bin	
 	
 objdump: os
 	objdump -h $(TARGET_DIR)/os  | $(vi) -
