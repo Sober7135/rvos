@@ -4,17 +4,21 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
+#[macro_use]
 extern crate alloc;
+extern crate bitflags;
 extern crate buddy_system_allocator;
 
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
 
-mod loader;
+use crate::config::MEMORY_END;
+
 #[macro_use]
 mod console;
 mod config;
 mod lang_items;
+mod loader;
 mod logger;
 mod mm;
 mod sbi;
@@ -38,7 +42,7 @@ fn clear_bss() {
 }
 
 fn print_segment_info(segment: &str, start: usize, end: usize) {
-    trace!("[kernel] .{:6}: [{:#x}, {:#x}]", segment, start, end);
+    trace!("[kernel] .{:8}: [{:#x}, {:#x}]", segment, start, end);
 }
 
 #[no_mangle]
@@ -54,6 +58,7 @@ fn rust_main() {
         fn ebss(); // end of block start symbol
         fn stack_lower_bound();
         fn stack_top();
+        fn ekernel();
     }
     clear_bss();
     logger::init();
@@ -61,6 +66,7 @@ fn rust_main() {
     print_segment_info("rodata", srodata as usize, erodata as usize);
     print_segment_info("data", sdata as usize, edata as usize);
     print_segment_info("bss", sbss as usize, ebss as usize);
+    print_segment_info("ekernel", ekernel as usize, MEMORY_END);
     print_segment_info("stack", stack_lower_bound as usize, stack_top as usize);
 
     trace!("[kernel][TEST] THIS IS TRACE");
@@ -72,7 +78,7 @@ fn rust_main() {
     println!("[kernel][TEST] Hello, World!");
 
     mm::init_heap();
-    mm::heap_test();
+    mm::test();
 
     loader::load_apps();
     trap::init();

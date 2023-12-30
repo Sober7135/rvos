@@ -23,4 +23,5 @@ SECTIONS
   .bss : { *(.bss .bss.*) *(.bss.stack) }
   . = ALIGN(4K);
   ebss = .;
+  ekernel = .;
 }

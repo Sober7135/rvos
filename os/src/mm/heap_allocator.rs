@@ -36,8 +36,8 @@ pub(crate) fn heap_test() {
     for i in 0..1145 {
         v.push(i);
     }
-    for i in 0..1145 {
-        assert_eq!(v[i], i);
+    for (i, item) in v.iter().enumerate() {
+        assert_eq!(*item, i);
     }
     assert!(bss_range.contains(&(v.as_ptr() as usize)));
 

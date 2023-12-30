@@ -14,3 +14,11 @@ pub(crate) const MSEC_PER_SEC: usize = 1000;
 
 pub(crate) const HEAP_ORDER_SIZE: usize = 32;
 pub(crate) const KERNEL_HEAP_SIZE: usize = 0x300_000;
+
+// page
+pub(crate) const PAGE_SIZE_BITS: usize = 12;
+pub(crate) const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
+pub(crate) const PA_WIDTH_SV39: usize = 56;
+pub(crate) const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
+
+pub(crate) const MEMORY_END: usize = 0x8080_0000;
