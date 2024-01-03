@@ -1,4 +1,5 @@
 use crate::{
+    mm::copy_from_user,
     print,
     task::{mark_current_exited, mark_current_suspend, run_next_task},
     timer::get_time_ms,
@@ -32,10 +33,9 @@ const FD_STDOUT: usize = 1;
 fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     match fd {
         FD_STDOUT => {
-            unsafe {
-                let slice = core::slice::from_raw_parts(buf, len);
-                let str = core::str::from_utf8(slice).unwrap();
-                print!("{}", str);
+            let buffer = copy_from_user(buf, len);
+            for buf in buffer {
+                print!("{}", core::str::from_utf8(buf).unwrap());
             }
             len as isize
         }
@@ -60,3 +60,18 @@ fn sys_yield() -> isize {
 fn sys_get_time() -> isize {
     get_time_ms() as isize
 }
+
+// pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
+//   match fd {
+//       FD_STDOUT => {
+//           let buffers = translated_byte_buffer(get_current_user_token(), buf, len);
+//           for buffer in buffers {
+//               print!("{}", core::str::from_utf8(buffer).unwrap());
+//           }
+//           len as isize
+//       }
+//       _ => {
+//           panic!("Unsupported fd in sys_write!");
+//       }
+//   }
+// }

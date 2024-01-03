@@ -1,26 +1,31 @@
+OUTPUT_ARCH(riscv)
 ENTRY(_start)
-BASE_ADDRESS = 0x80400000;
+BASE_ADDRESS = 0x10000;
 
 SECTIONS
 {
   . = BASE_ADDRESS;
-  stext = .;
-  .text : { *(.text.entry) *(.text) *(.text.*) }
-  . = ALIGN(4K);
-  etext = .;
+  .text : { 
+      *(.text.entry) 
+      *(.text .text.*) 
+  }
 
-  srodata = .;
-  .rodata : { *(.rodata) *(.rodata.*)}
   . = ALIGN(4K);
-  erodata = .;
-  
-  sdata = .;
-  .data : { *(.data) }
-  . = ALIGN(4K);
-  edata = .;
+  .rodata : { 
+      *(.rodata .rodata.*)
+      *(.srodata .srodata.*)
+  }
 
-  sbss = .;
-  .bss : { *(.bss) *(.bss.stack) }
   . = ALIGN(4K);
-  ebss = .;
+  .data : { *(.data .data.*) *(.sdata .sdata.*) }
+
+  . = ALIGN(4K);
+  .bss : { 
+      *(.bss .bss.*)
+      *(.sbss .sbss.*)
+  }
+
+  /DISCARD/ : {
+      *(.eh_frame)
+  }
 }

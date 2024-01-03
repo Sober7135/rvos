@@ -1,7 +1,6 @@
-use core::fmt::Debug;
-
 use super::page_table::PageTableEntry;
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS, PA_WIDTH_SV39, PPN_WIDTH_SV39};
+use core::fmt::Debug;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub(crate) struct PhysicalAddr(pub(crate) usize);
@@ -89,8 +88,14 @@ impl From<PhysicalPageNumber> for PhysicalAddr {
 impl PhysicalPageNumber {
     /// Get page table entry at `pte.ppn + va.vpn[i]`
     pub(crate) fn get_pte(&self, offset: usize) -> &'static mut PageTableEntry {
-        let pa: PhysicalAddr = (PhysicalAddr::from(*self).0 + offset).into();
+        let pa: PhysicalAddr =
+            (PhysicalAddr::from(*self).0 + offset * core::mem::size_of::<PageTableEntry>()).into();
         unsafe { (pa.0 as *mut PageTableEntry).as_mut().unwrap() }
+    }
+
+    pub(crate) fn get_mut<T>(&self) -> &'static mut T {
+        let pa: PhysicalAddr = (*self).into();
+        unsafe { (pa.0 as *mut T).as_mut().unwrap() }
     }
 }
 
@@ -109,21 +114,18 @@ impl From<VirtualAddr> for usize {
 impl VirtualPageNumber {
     pub(crate) fn get_indexes(&self) -> [usize; 3] {
         let mut ret = [0usize; 3];
-        let mut vpns = self.0 >> PAGE_SIZE_BITS;
+        let mut vpns = self.0;
         for i in 0..3 {
-            ret[i] = vpns & ((1 << 9) - 1);
-            vpns = vpns >> 9;
+            ret[2 - i] = vpns & ((1 << 9) - 1);
+            vpns >>= 9;
         }
         ret
-    }
-    pub(crate) fn get_offset(&self) -> usize {
-        self.0 & ((1 << PAGE_SIZE_BITS) - 1)
     }
 }
 
 impl From<VirtualAddr> for VirtualPageNumber {
     fn from(value: VirtualAddr) -> Self {
-        Self(value.0 >> PAGE_SIZE_BITS)
+        value.floor()
     }
 }
 
@@ -136,6 +138,14 @@ impl From<VirtualPageNumber> for VirtualAddr {
 impl VirtualAddr {
     pub(crate) fn get_offset(&self) -> usize {
         self.0 & ((1 << PAGE_SIZE_BITS) - 1)
+    }
+
+    pub(crate) fn floor(&self) -> VirtualPageNumber {
+        VirtualPageNumber(self.0 / PAGE_SIZE)
+    }
+
+    pub(crate) fn ceil(&self) -> VirtualPageNumber {
+        VirtualPageNumber((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
 }
 
@@ -150,3 +160,87 @@ impl From<VirtualPageNumber> for usize {
         value.0
     }
 }
+
+pub(crate) trait StepByOne {
+    fn step(&mut self);
+}
+
+impl StepByOne for VirtualPageNumber {
+    fn step(&mut self) {
+        self.0 += 1;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SimpleRange<T>
+where
+    T: StepByOne + Copy + PartialEq + PartialOrd,
+{
+    l: T,
+    r: T,
+}
+
+impl<T> SimpleRange<T>
+where
+    T: StepByOne + Copy + PartialEq + PartialOrd,
+{
+    pub(crate) fn new(l: T, r: T) -> Self {
+        assert!(l <= r);
+        Self { l, r }
+    }
+
+    pub(crate) fn get_start(&self) -> T {
+        self.l
+    }
+
+    pub(crate) fn get_end(&self) -> T {
+        self.r
+    }
+}
+
+impl<T> IntoIterator for SimpleRange<T>
+where
+    T: StepByOne + Copy + Clone + PartialOrd + Ord + PartialEq + Eq,
+{
+    type IntoIter = SimpleRangeIterator<T>;
+    type Item = T;
+    fn into_iter(self) -> Self::IntoIter {
+        SimpleRangeIterator {
+            current: self.l,
+            end: self.r,
+        }
+    }
+}
+
+pub(crate) struct SimpleRangeIterator<T>
+where
+    T: StepByOne + Clone + Copy,
+{
+    current: T,
+    end: T,
+}
+
+impl<T> Iterator for SimpleRangeIterator<T>
+where
+    T: StepByOne + Copy + Clone + PartialEq + Eq + PartialOrd + Ord,
+{
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current == self.end {
+            None
+        } else {
+            let ret = self.current;
+            self.current.step();
+            Some(ret)
+        }
+    }
+}
+
+pub(crate) type VPNRange = SimpleRange<VirtualPageNumber>;
+
+// impl PhysicalPageNumber {
+//     pub fn get_bytes_array(&self) -> &'static mut [u8] {
+//         let pa: PhysicalAddr = (*self).into();
+//         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
+//     }
+// }

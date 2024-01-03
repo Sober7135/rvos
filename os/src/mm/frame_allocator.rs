@@ -15,7 +15,7 @@ lazy_static! {
         }
         unsafe {
             // compute the first ppn and last ppn
-            UpSafeCell::new(StackAllocator::new(
+            UpSafeCell::new(FrameAllocatorImpl::new(
                 PhysicalAddr::from(ekernel as usize).ceil(),
                 PhysicalAddr::from(MEMORY_END).floor(),
             ))
@@ -97,7 +97,7 @@ impl FrameAllocator for StackAllocator {
     }
 
     fn dealloca(&mut self, ppn: PhysicalPageNumber) {
-        if ppn.0 >= self.current || self.recycled.iter().find(|&v| *v == ppn.0).is_some() {
+        if ppn.0 >= self.current || self.recycled.iter().any(|&v| v == ppn.0) {
             panic!("Frame ppn={:#x} has not been allocated!", ppn.0);
         }
         self.recycled.push(ppn.into())

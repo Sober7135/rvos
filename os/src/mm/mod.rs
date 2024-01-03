@@ -1,16 +1,23 @@
 mod address;
 mod frame_allocator;
 mod heap_allocator;
+mod memory_set;
 mod page_table;
 
-use self::{
-    frame_allocator::frame_allocator_test, heap_allocator::heap_test, page_table::translate_test,
-};
+pub(crate) use address::*;
+use memory_set::remap_test;
+pub(crate) use memory_set::{MapPermission, MemorySet, KERNEL_SPACE};
+pub(crate) use page_table::copy_from_user;
 
-pub(crate) use heap_allocator::init_heap;
-
+#[allow(unused)]
 pub(crate) fn test() {
-    heap_test();
-    frame_allocator_test();
-    translate_test();
+    // heap_test();
+    // frame_allocator_test();
+    // translate_test();
+    remap_test();
+}
+
+pub(crate) fn init() {
+    heap_allocator::init_heap();
+    KERNEL_SPACE.exclusive_access().activate();
 }

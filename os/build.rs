@@ -4,14 +4,16 @@ use std::{
 };
 
 fn main() {
+    let profile = std::env::var("PROFILE").unwrap();
+    let target_path = TARGET_PATH_WITHOUT_MODE.to_string() + profile.as_str() + "/";
     println!("cargo:rerun-if-changed=../usr/src/");
-    println!("cargo:rerun-if-changed={}", TARGET_PATH);
-    insert_app().unwrap();
+    println!("cargo:rerun-if-changed={}", target_path);
+    insert_app(target_path).unwrap();
 }
 
-static TARGET_PATH: &str = "./target/riscv64gc-unknown-none-elf/release";
+static TARGET_PATH_WITHOUT_MODE: &str = "./target/riscv64gc-unknown-none-elf/";
 
-fn insert_app() -> Result<()> {
+fn insert_app(target_path: String) -> Result<()> {
     let mut link_file = File::create("src/link_app.S").unwrap();
     let mut apps: Vec<_> = fs::read_dir("../user/src/bin")
         .unwrap()
@@ -50,10 +52,11 @@ _num_apps:
     .section .data # maybe unnecessary
     .global {}
     .global {}
+    .align 3
 {}:
-    .incbin "{}/{}.bin"
+    .incbin "{}/{}"
 {}:"#,
-            start, end, start, TARGET_PATH, app, end
+            start, end, start, target_path, app, end
         )?
     }
     Ok(())

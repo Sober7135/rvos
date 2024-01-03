@@ -1,23 +1,19 @@
+use crate::trap::trap_return;
+
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct TaskContext {
-    pub ra: usize,
-    pub sp: usize,
+    ra: usize,
+    sp: usize,
     s: [usize; 12],
 }
 
 impl TaskContext {
-    pub(crate) fn zero_init() -> Self {
-        Self::default()
-    }
-
-    pub(crate) fn init(&mut self, kstack_ptr: usize) {
-        extern "C" {
-            fn __restore();
+    pub(crate) fn goto_trap_return(kstack_top: usize) -> Self {
+        Self {
+            ra: trap_return as usize,
+            sp: kstack_top,
+            s: [0; 12],
         }
-
-        // So when the __switch ret, the pc point to __restore, so we get back to user space
-        self.ra = __restore as usize;
-        self.sp = kstack_ptr;
     }
 }

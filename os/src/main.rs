@@ -12,15 +12,13 @@ extern crate buddy_system_allocator;
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
 
-use crate::config::MEMORY_END;
-
 #[macro_use]
 mod console;
 mod config;
 mod lang_items;
 mod loader;
 mod logger;
-mod mm;
+pub(crate) mod mm;
 mod sbi;
 mod stack_trace;
 mod sync;
@@ -41,33 +39,10 @@ fn clear_bss() {
         .for_each(|address| unsafe { (address as *mut u8).write_volatile(0) })
 }
 
-fn print_segment_info(segment: &str, start: usize, end: usize) {
-    trace!("[kernel] .{:8}: [{:#x}, {:#x}]", segment, start, end);
-}
-
 #[no_mangle]
 fn rust_main() {
-    extern "C" {
-        fn stext();
-        fn etext();
-        fn srodata();
-        fn erodata();
-        fn sdata();
-        fn edata();
-        fn sbss(); // start of block start symbol
-        fn ebss(); // end of block start symbol
-        fn stack_lower_bound();
-        fn stack_top();
-        fn ekernel();
-    }
     clear_bss();
     logger::init();
-    print_segment_info("text", stext as usize, etext as usize);
-    print_segment_info("rodata", srodata as usize, erodata as usize);
-    print_segment_info("data", sdata as usize, edata as usize);
-    print_segment_info("bss", sbss as usize, ebss as usize);
-    print_segment_info("ekernel", ekernel as usize, MEMORY_END);
-    print_segment_info("stack", stack_lower_bound as usize, stack_top as usize);
 
     trace!("[kernel][TEST] THIS IS TRACE");
     info!("[kernel][TEST] THIS IS INFO");
@@ -77,10 +52,12 @@ fn rust_main() {
 
     println!("[kernel][TEST] Hello, World!");
 
-    mm::init_heap();
-    mm::test();
+    mm::init();
 
-    loader::load_apps();
+    info!(">>>>>>>>>>>>>>>> TEST <<<<<<<<<<<<<<<<");
+    mm::test();
+    info!(">>>>>>>>>>>>>>>> TEST <<<<<<<<<<<<<<<<");
+
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();

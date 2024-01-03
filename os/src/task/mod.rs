@@ -1,7 +1,10 @@
 use crate::config::*;
-use crate::loader::{get_num_apps, init_app_cx};
+use crate::loader::{get_app_data, get_num_apps};
+use crate::mm::*;
 use crate::sbi::shutdown;
 use crate::sync::UpSafeCell;
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 use core::arch::global_asm;
 use lazy_static::lazy_static;
 
@@ -15,18 +18,55 @@ use log::info;
 use self::status::TaskStatus;
 use self::switch::__switch;
 
-#[derive(Debug, Clone, Copy)]
+#[allow(unused)]
+#[derive(Debug)]
 pub(crate) struct TaskControlBlock {
     status: TaskStatus,
     context: TaskContext,
+    memory_set: MemorySet,
+    trap_cx_ppn: PhysicalPageNumber,
+    // TODO what is this
+    base_size: usize,
 }
 
 impl TaskControlBlock {
-    pub(crate) fn zero_init() -> Self {
-        Self {
-            status: TaskStatus::init(),
-            context: TaskContext::zero_init(),
-        }
+    pub(crate) fn get_trap_cx(&self) -> &'static mut TrapContext {
+        self.trap_cx_ppn.get_mut()
+    }
+
+    pub(crate) fn new(elf_data: &[u8], app_id: usize) -> Self {
+        let status = TaskStatus::Ready;
+        let (kstack_bottom, kstack_top) = kernel_stack_position(app_id);
+        let task_cx = TaskContext::goto_trap_return(kstack_top);
+        let (mm_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+
+        let trap_cx_ppn = mm_set
+            .translate(VirtualAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .get_ppn();
+
+        KERNEL_SPACE.exclusive_access().insert_framed_area(
+            kstack_bottom.into(),
+            kstack_top.into(),
+            MapPermission::R | MapPermission::W,
+        );
+
+        let tcb = Self {
+            status,
+            context: task_cx,
+            memory_set: mm_set,
+            trap_cx_ppn,
+            base_size: user_sp,
+        };
+
+        let trap_cx = tcb.get_trap_cx();
+        *trap_cx = TrapContext::app_init_context(entry_point, kstack_top, user_sp);
+
+        tcb
+    }
+
+    pub(crate) fn get_user_token(&self) -> usize {
+        self.memory_set.get_token()
     }
 }
 
@@ -37,17 +77,17 @@ pub(crate) struct TaskManager {
 
 #[derive(Debug)]
 struct TaskManagerInner {
-    tasks: [TaskControlBlock; MAX_APP_NUM],
+    tasks: Vec<TaskControlBlock>,
     current_task: usize,
 }
 
 lazy_static! {
     pub(crate) static ref TASK_MANAGER: TaskManager = {
         let num_apps = get_num_apps();
-        let mut tasks = [TaskControlBlock::zero_init(); MAX_APP_NUM];
-        for (i, task) in tasks.iter_mut().enumerate().take(num_apps) {
-            task.status = status::TaskStatus::Ready;
-            task.context.init(init_app_cx(i));
+        let mut tasks = Vec::new();
+        let apps_num = get_num_apps();
+        for i in 0..apps_num {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
 
         TaskManager {
@@ -78,9 +118,16 @@ pub(crate) fn mark_current_suspend() {
     TASK_MANAGER.mark_current_suspend();
 }
 
+pub(crate) fn get_current_user_token() -> usize {
+    TASK_MANAGER.get_current_user_token()
+}
+
+pub(crate) fn get_current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
+}
+
 impl TaskManager {
     fn run_first_app(&self) {
-        // info!("[kernel] Starting running app_{}", 0);
         let mut inner = self.inner.exclusive_access();
         let task = &mut inner.tasks[0];
         task.status = TaskStatus::Running;
@@ -113,7 +160,6 @@ impl TaskManager {
 
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
-            // info!("[kernel] Starting running app_{}", next);
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             let current_task_cx_ptr = &mut inner.tasks[current].context as *mut TaskContext;
@@ -129,5 +175,17 @@ impl TaskManager {
             info!("shutdown...");
             shutdown(false);
         }
+    }
+
+    fn get_current_user_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_user_token()
+    }
+
+    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_trap_cx()
     }
 }
