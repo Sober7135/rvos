@@ -13,8 +13,8 @@ pub(crate) const KERNEL_HEAP_SIZE: usize = 0x3_00000;
 // page
 pub(crate) const PAGE_SIZE_BITS: usize = 12;
 pub(crate) const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
-pub(crate) const PA_WIDTH_SV39: usize = 56;
-pub(crate) const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
+pub(crate) const SV39_ADDR_WIDTH: usize = 56;
+pub(crate) const SV39_PPN_WIDTH: usize = SV39_ADDR_WIDTH - PAGE_SIZE_BITS;
 // start of the last page of the usize
 pub(crate) const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
 pub(crate) const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;

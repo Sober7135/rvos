@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     address::{PhysicalPageNumber, VPNRange, VirtualAddr, VirtualPageNumber},
-    frame_allocator::{frame_alloca, FrameTracker},
+    frame_allocator::{frame_alloc, FrameTracker},
     page_table::{PTEFlags, PageTable, PageTableEntry},
 };
 
@@ -121,8 +121,8 @@ impl MapArea {
         match self.map_type {
             MapType::Identical => ppn = PhysicalPageNumber(vpn.0),
             MapType::Framed => {
-                let frame = frame_alloca().unwrap();
-                ppn = frame.inner;
+                let frame = frame_alloc().unwrap();
+                ppn = frame.ppn;
                 self.date_frames.insert(vpn, frame);
             }
         }

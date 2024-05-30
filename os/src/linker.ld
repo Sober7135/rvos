@@ -35,4 +35,9 @@ SECTIONS
   ebss = .;
 
   ekernel = .;
+
+  /DISCARD/ : {
+      *(.eh_frame)
+      *(.debug*)
+  }
 }

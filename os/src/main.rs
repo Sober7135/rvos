@@ -10,7 +10,6 @@ extern crate bitflags;
 extern crate buddy_system_allocator;
 
 use core::arch::global_asm;
-use log::{debug, error, info, trace, warn};
 
 #[macro_use]
 mod console;
@@ -43,21 +42,7 @@ fn clear_bss() {
 fn rust_main() {
     clear_bss();
     logger::init();
-
-    trace!("[kernel][TEST] THIS IS TRACE");
-    info!("[kernel][TEST] THIS IS INFO");
-    debug!("[kernel][TEST] THIS IS DEBUG");
-    warn!("[kernel][TEST] THIS IS WARN");
-    error!("[kernel][TEST] THIS IS ERROR");
-
-    println!("[kernel][TEST] Hello, World!");
-
     mm::init();
-
-    info!(">>>>>>>>>>>>>>>> TEST <<<<<<<<<<<<<<<<");
-    mm::test();
-    info!(">>>>>>>>>>>>>>>> TEST <<<<<<<<<<<<<<<<");
-
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();

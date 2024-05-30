@@ -1,8 +1,9 @@
 use super::{
     address::{PhysicalPageNumber, VirtualPageNumber},
-    frame_allocator::{frame_alloca, FrameTracker},
+    frame_allocator::{frame_alloc, FrameTracker},
 };
 use crate::{
+    config::SV39_PPN_WIDTH,
     mm::{
         address::{PhysicalAddr, StepByOne},
         VirtualAddr,
@@ -29,20 +30,20 @@ bitflags! {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub(crate) struct PageTableEntry {
-    pub(crate) bits: usize,
+    pub(crate) bits: u64,
 }
 
 #[derive(Debug, Default)]
 pub(crate) struct PageTable {
-    pub(crate) root: PhysicalPageNumber,
+    pub(crate) ppn: PhysicalPageNumber,
     pub(crate) frames: Vec<FrameTracker>,
 }
 
 impl PageTable {
     pub(crate) fn new() -> Self {
-        let frame = frame_alloca().unwrap();
+        let frame = frame_alloc().unwrap();
         Self {
-            root: frame.inner,
+            ppn: frame.ppn,
             frames: vec![frame],
         }
     }
@@ -50,13 +51,13 @@ impl PageTable {
     /// Don't worry about `Vec::new`, it's just temporarily used and the frames will never be pushed..
     pub(crate) fn from_token(token: usize) -> Self {
         Self {
-            root: PhysicalPageNumber(token & ((1usize << 44) - 1)),
+            ppn: PhysicalPageNumber(token & ((1usize << 44) - 1)),
             frames: Vec::new(),
         }
     }
 
     fn find_pte_create(&mut self, vpn: VirtualPageNumber) -> Option<&mut PageTableEntry> {
-        let mut ppn = self.root;
+        let mut ppn = self.ppn;
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, offset) in vpn.get_indexes().iter().enumerate() {
             let pte = ppn.get_pte(*offset);
@@ -66,8 +67,8 @@ impl PageTable {
             }
 
             if !pte.is_valid() {
-                let alloca = frame_alloca().unwrap();
-                *pte = PageTableEntry::new(alloca.inner, PTEFlags::V);
+                let alloca = frame_alloc().unwrap();
+                *pte = PageTableEntry::new(alloca.ppn, PTEFlags::V);
                 self.frames.push(alloca);
             }
             ppn = pte.get_ppn();
@@ -76,7 +77,7 @@ impl PageTable {
     }
 
     fn find_pte(&self, vpn: VirtualPageNumber) -> Option<&mut PageTableEntry> {
-        let mut ppn = self.root;
+        let mut ppn = self.ppn;
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, offset) in vpn.get_indexes().iter().enumerate() {
             let pte = ppn.get_pte(*offset);
@@ -116,14 +117,14 @@ impl PageTable {
 
     pub(crate) fn get_token(&self) -> usize {
         // 8 for sv39 mode
-        8usize << 60 | self.root.0
+        8usize << 60 | self.ppn.0
     }
 }
 
 impl PageTableEntry {
     pub(crate) fn new(ppn: PhysicalPageNumber, pte_flag: PTEFlags) -> Self {
         Self {
-            bits: (ppn.0 << 10) | pte_flag.bits() as usize,
+            bits: ((ppn.0 << 10) | pte_flag.bits() as usize) as u64,
         }
     }
 
@@ -132,7 +133,7 @@ impl PageTableEntry {
     }
 
     pub(crate) fn get_ppn(&self) -> PhysicalPageNumber {
-        ((self.bits >> 10) & ((1 << 44) - 1)).into()
+        (((self.bits >> 10) & ((1 << SV39_PPN_WIDTH) - 1)) as usize).into()
     }
 
     pub(crate) fn flags(&self) -> PTEFlags {
@@ -176,23 +177,23 @@ pub(crate) fn copy_from_user(ptr: *const u8, len: usize) -> Vec<&'static [u8]> {
     let mut v = Vec::new();
     let mut start = ptr as usize;
     let end = start + len;
+
     while start < end {
         let start_va = VirtualAddr::from(start);
         let mut vpn = start_va.floor();
-        let addr = PhysicalAddr::from(page_table.translate(vpn).unwrap().get_ppn()).0
-            + start_va.get_offset();
+
         vpn.step();
         // The end_va may bigger than end
         let mut end_va: VirtualAddr = vpn.into();
         end_va = end_va.min(VirtualAddr::from(end));
 
-        v.push(unsafe {
-            core::slice::from_raw_parts(
-                addr as *const u8,
-                usize::from(end_va) - usize::from(start_va),
-            )
-        });
-
+        v.push(
+            &page_table
+                .translate(start_va.floor())
+                .unwrap()
+                .get_ppn()
+                .get_bytes_array()[start_va.get_offset()..end_va.get_offset()],
+        );
         start = end_va.into();
     }
     v

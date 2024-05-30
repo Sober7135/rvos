@@ -23,42 +23,42 @@ lazy_static! {
     };
 }
 
-pub(crate) fn frame_alloca() -> Option<FrameTracker> {
+pub(crate) fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()
         .alloca()
         .map(FrameTracker::new)
 }
 
-pub(crate) fn frame_dealloca(ppn: PhysicalPageNumber) {
+pub(crate) fn frame_dealloc(ppn: PhysicalPageNumber) {
     FRAME_ALLOCATOR.exclusive_access().dealloca(ppn)
 }
 
 pub(crate) struct FrameTracker {
-    pub(crate) inner: PhysicalPageNumber,
+    pub(crate) ppn: PhysicalPageNumber,
 }
 
 impl Debug for FrameTracker {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("FrameTracker: PPN={:#x}", self.inner.0))
+        f.write_fmt(format_args!("FrameTracker: PPN={:#x}", self.ppn.0))
     }
 }
 
 impl From<PhysicalPageNumber> for FrameTracker {
     fn from(value: PhysicalPageNumber) -> Self {
-        Self { inner: value }
+        Self { ppn: value }
     }
 }
 
 impl Drop for FrameTracker {
     fn drop(&mut self) {
-        frame_dealloca(self.inner)
+        frame_dealloc(self.ppn)
     }
 }
 
 impl FrameTracker {
     pub(crate) fn new(ppn: PhysicalPageNumber) -> Self {
-        Self { inner: ppn }
+        Self { ppn }
     }
 }
 
@@ -108,13 +108,13 @@ impl FrameAllocator for StackAllocator {
 pub(crate) fn frame_allocator_test() {
     let mut v: Vec<FrameTracker> = Vec::new();
     for i in 0..5 {
-        let frame = frame_alloca().unwrap();
+        let frame = frame_alloc().unwrap();
         info!("{:?}", frame);
         v.push(frame);
     }
     v.clear();
     for i in 0..5 {
-        let frame = frame_alloca().unwrap();
+        let frame = frame_alloc().unwrap();
         info!("{:?}", frame);
         v.push(frame);
     }
