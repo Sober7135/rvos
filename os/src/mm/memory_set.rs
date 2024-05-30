@@ -100,7 +100,7 @@ impl MapArea {
         let mut cur_vpn = self.vpn_range.get_start();
         let mut len = data.len();
         let mut start = 0;
-        loop {
+        while len != 0 {
             let dst: usize =
                 PhysicalAddr::from(page_table.translate(cur_vpn).unwrap().get_ppn()).into();
             let n = len.min(PAGE_SIZE);
@@ -111,9 +111,6 @@ impl MapArea {
 
             unsafe { core::ptr::copy(src.as_ptr(), dst as *mut u8, n) }
             cur_vpn.step();
-            if len < PAGE_SIZE {
-                break;
-            }
         }
     }
 
@@ -160,7 +157,6 @@ impl MemorySet {
     }
 
     pub(crate) fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
-        // TODO
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
             map_area.copy_data(&self.page_table, data)
