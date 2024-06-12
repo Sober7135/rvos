@@ -2,7 +2,7 @@ use crate::config::*;
 use crate::loader::{get_app_data, get_num_apps};
 use crate::mm::*;
 use crate::sbi::shutdown;
-use crate::sync::UpSafeCell;
+use crate::sync::mutex::Mutex;
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
 use core::arch::global_asm;
@@ -45,7 +45,7 @@ impl TaskControlBlock {
             .unwrap()
             .get_ppn();
 
-        KERNEL_SPACE.exclusive_access().insert_framed_area(
+        KERNEL_SPACE.lock().insert_framed_area(
             kstack_bottom.into(),
             kstack_top.into(),
             MapPermission::R | MapPermission::W,
@@ -72,7 +72,7 @@ impl TaskControlBlock {
 
 pub(crate) struct TaskManager {
     num_apps: usize,
-    inner: UpSafeCell<TaskManagerInner>,
+    inner: Mutex<TaskManagerInner>,
 }
 
 #[derive(Debug)]
@@ -92,12 +92,10 @@ lazy_static! {
 
         TaskManager {
             num_apps,
-            inner: unsafe {
-                UpSafeCell::new(TaskManagerInner {
-                    tasks,
-                    current_task: 0,
-                })
-            },
+            inner: Mutex::new(TaskManagerInner {
+                tasks,
+                current_task: 0,
+            }),
         }
     };
 }
@@ -128,7 +126,7 @@ pub(crate) fn get_current_trap_cx() -> &'static mut TrapContext {
 
 impl TaskManager {
     fn run_first_app(&self) {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.lock();
         let task = &mut inner.tasks[0];
         task.status = TaskStatus::Running;
         let next_task_cx_ptr = &task.context as *const TaskContext;
@@ -139,7 +137,7 @@ impl TaskManager {
     }
 
     fn find_next_task(&self) -> Option<usize> {
-        let inner = self.inner.exclusive_access();
+        let inner = self.inner.lock();
         let current = inner.current_task;
         (current + 1..current + self.num_apps + 1)
             .map(|index| index % self.num_apps)
@@ -147,20 +145,20 @@ impl TaskManager {
     }
 
     fn mark_current_exited(&self) {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.lock();
         let current = inner.current_task;
         inner.tasks[current].status = TaskStatus::Exited;
     }
 
     fn mark_current_suspend(&self) {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.lock();
         let current = inner.current_task;
         inner.tasks[current].status = TaskStatus::Ready;
     }
 
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
-            let mut inner = self.inner.exclusive_access();
+            let mut inner = self.inner.lock();
             let current = inner.current_task;
             let current_task_cx_ptr = &mut inner.tasks[current].context as *mut TaskContext;
             let next_task_context_ptr = &inner.tasks[next].context as *const TaskContext;
@@ -178,13 +176,13 @@ impl TaskManager {
     }
 
     fn get_current_user_token(&self) -> usize {
-        let inner = self.inner.exclusive_access();
+        let inner = self.inner.lock();
         let current = inner.current_task;
         inner.tasks[current].get_user_token()
     }
 
     fn get_current_trap_cx(&self) -> &'static mut TrapContext {
-        let inner = self.inner.exclusive_access();
+        let inner = self.inner.lock();
         let current = inner.current_task;
         inner.tasks[current].get_trap_cx()
     }

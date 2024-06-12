@@ -19,5 +19,5 @@ pub(crate) fn test() {
 
 pub(crate) fn init() {
     heap_allocator::init_heap();
-    KERNEL_SPACE.exclusive_access().activate();
+    KERNEL_SPACE.lock().activate();
 }

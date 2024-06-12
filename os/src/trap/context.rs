@@ -35,7 +35,7 @@ impl TrapContext {
             x: [0; 32],
             sstatus: _sstatus,
             sepc: entry,
-            kernel_satp: KERNEL_SPACE.exclusive_access().get_token(),
+            kernel_satp: KERNEL_SPACE.lock().get_token(),
             kernel_sp,
             trap_handler: trap_handler as usize,
         };

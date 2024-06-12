@@ -10,7 +10,7 @@ use xmas_elf::program::ProgramHeader;
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
     mm::address::{PhysicalAddr, StepByOne},
-    sync::UpSafeCell,
+    sync::mutex::Mutex,
 };
 
 use super::{
@@ -361,13 +361,13 @@ fn get_permission(ph: &ProgramHeader) -> MapPermission {
 }
 
 lazy_static! {
-    pub(crate) static ref KERNEL_SPACE: Arc<UpSafeCell<MemorySet>> =
-        Arc::new(unsafe { UpSafeCell::new(MemorySet::new_kernel()) });
+    pub(crate) static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> =
+        Arc::new(Mutex::new(MemorySet::new_kernel()));
 }
 
 #[allow(unused)]
 pub(crate) fn remap_test() {
-    let mut kernel_space = KERNEL_SPACE.exclusive_access();
+    let mut kernel_space = KERNEL_SPACE.lock();
     let mtext: VirtualAddr = (((stext as usize) + (etext as usize)) / 2).into();
     let mrodata: VirtualAddr = (((srodata as usize) + (erodata as usize)) / 2).into();
     let mdata: VirtualAddr = (((sdata as usize) + (edata as usize)) / 2).into();
