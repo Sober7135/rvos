@@ -1,4 +1,4 @@
 **/target
 .gdb_history
 backup
-Cargo.lock
+**/Cargo.lock

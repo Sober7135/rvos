@@ -1,8 +1,7 @@
 use core::arch::asm;
 
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 use bitflags::bitflags;
-use lazy_static::lazy_static;
 use log::info;
 use riscv::register::satp;
 use xmas_elf::program::ProgramHeader;
@@ -10,7 +9,6 @@ use xmas_elf::program::ProgramHeader;
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
     mm::address::{PhysicalAddr, StepByOne},
-    sync::mutex::Mutex,
 };
 
 use super::{
@@ -33,13 +31,13 @@ extern "C" {
 }
 
 #[derive(Debug)]
-pub(crate) struct MemorySet {
-    page_table: PageTable,
+pub struct MemorySet {
+    pub page_table: PageTable,
     areas: Vec<MapArea>,
 }
 
 #[derive(Debug)]
-pub(crate) struct MapArea {
+pub struct MapArea {
     vpn_range: VPNRange,
     date_frames: BTreeMap<VirtualPageNumber, FrameTracker>,
     map_type: MapType,
@@ -47,14 +45,14 @@ pub(crate) struct MapArea {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum MapType {
+pub enum MapType {
     Identical,
     Framed,
 }
 
 bitflags! {
     #[derive(Debug)]
-    pub(crate) struct MapPermission : u8 {
+    pub struct MapPermission : u8 {
       const R = 1 << 1;
       const W = 1 << 2;
       const X = 1 << 3;
@@ -63,7 +61,7 @@ bitflags! {
 }
 
 impl MapArea {
-    pub(crate) fn new(
+    pub fn new(
         start_va: VirtualAddr,
         end_va: VirtualAddr,
         map_type: MapType,
@@ -77,21 +75,21 @@ impl MapArea {
         }
     }
 
-    pub(crate) fn map(&mut self, page_table: &mut PageTable) {
+    pub fn map(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.map_one(page_table, vpn);
         }
     }
 
     #[allow(unused)]
-    pub(crate) fn unmap(&mut self, page_table: &mut PageTable) {
+    pub fn unmap(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.unmap_one(page_table, vpn);
         }
     }
 
     // copy data into physical frames
-    pub(crate) fn copy_data(&mut self, page_table: &PageTable, data: &[u8]) {
+    pub fn copy_data(&mut self, page_table: &PageTable, data: &[u8]) {
         assert!(
             self.map_type == MapType::Framed,
             "Map type identical cannot copy data\n"
@@ -114,7 +112,7 @@ impl MapArea {
         }
     }
 
-    pub(crate) fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtualPageNumber) {
+    pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtualPageNumber) {
         // first map in data_frames
         // then map in page_table. Actually, page table's map is writing data to pte which can be translated by mmu
         let ppn: PhysicalPageNumber;
@@ -132,7 +130,7 @@ impl MapArea {
     }
 
     #[allow(unused)]
-    pub(crate) fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtualPageNumber) {
+    pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtualPageNumber) {
         if let MapType::Framed = self.map_type {
             self.date_frames.remove(&vpn);
         }
@@ -141,22 +139,22 @@ impl MapArea {
 }
 
 impl MemorySet {
-    pub(crate) fn new_bare() -> Self {
+    pub fn new_bare() -> Self {
         Self {
             page_table: PageTable::new(),
             areas: Vec::new(),
         }
     }
 
-    pub(crate) fn get_token(&self) -> usize {
+    pub fn get_token(&self) -> usize {
         self.page_table.get_token()
     }
 
-    pub(crate) fn translate(&self, vpn: VirtualPageNumber) -> Option<PageTableEntry> {
+    pub fn translate(&self, vpn: VirtualPageNumber) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
 
-    pub(crate) fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
+    pub fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
             map_area.copy_data(&self.page_table, data)
@@ -165,7 +163,7 @@ impl MemorySet {
     }
 
     /// Assume that no conflicts
-    pub(crate) fn insert_framed_area(
+    pub fn insert_framed_area(
         &mut self,
         start_va: VirtualAddr,
         end_va: VirtualAddr,
@@ -177,11 +175,24 @@ impl MemorySet {
         );
     }
 
+    /// Copyed data ???
+    pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtualPageNumber) {
+        if let Some((idx, map_area)) = self
+            .areas
+            .iter_mut()
+            .enumerate()
+            .find(|(_, area)| area.vpn_range.get_start() == start_vpn)
+        {
+            map_area.unmap(&mut self.page_table);
+            self.areas.remove(idx);
+        };
+    }
+
     // We must map trampoline both user space and kernel space
     // Becasue when we get into __alltraps and then we switch to kernel space,
     // the virtual address in kernel space and user space must be some, otherwise, the os will boomm!!!
     // Mention that trampoline is not collected by areas
-    pub(crate) fn map_trampoline(&mut self) {
+    pub fn map_trampoline(&mut self) {
         // WHY use R | X rather than R | W
         // because code of  __alltraps and __restore are stored in trampoline
         self.page_table.map(
@@ -194,7 +205,7 @@ impl MemorySet {
     }
 
     /// Map kernel
-    pub(crate) fn new_kernel() -> Self {
+    pub fn new_kernel() -> Self {
         let mut mm_set = MemorySet::new_bare();
         mm_set.map_trampoline();
         info!(
@@ -272,7 +283,7 @@ impl MemorySet {
     }
 
     /// Map from elf
-    pub(crate) fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
+    pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut mm_set = MemorySet::new_bare();
         // Map trampoline
         mm_set.map_trampoline();
@@ -336,12 +347,17 @@ impl MemorySet {
         )
     }
 
-    pub(crate) fn activate(&self) {
+    pub fn activate(&self) {
         let _satp = self.page_table.get_token();
         unsafe {
             satp::write(_satp);
             asm!("sfence.vma");
         }
+    }
+
+    // TODO is this necessary
+    pub fn recycle_data_pages(&mut self) {
+        self.areas.clear();
     }
 }
 
@@ -358,44 +374,4 @@ fn get_permission(ph: &ProgramHeader) -> MapPermission {
         perm |= MapPermission::X;
     }
     perm
-}
-
-lazy_static! {
-    pub(crate) static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> =
-        Arc::new(Mutex::new(MemorySet::new_kernel()));
-}
-
-#[allow(unused)]
-pub(crate) fn remap_test() {
-    let mut kernel_space = KERNEL_SPACE.lock();
-    let mtext: VirtualAddr = (((stext as usize) + (etext as usize)) / 2).into();
-    let mrodata: VirtualAddr = (((srodata as usize) + (erodata as usize)) / 2).into();
-    let mdata: VirtualAddr = (((sdata as usize) + (edata as usize)) / 2).into();
-    let mbss: VirtualAddr = (((sbss as usize) + (ebss as usize)) / 2).into();
-
-    // text
-    let mut pte = kernel_space.page_table.translate(mtext.into()).unwrap();
-    assert!(pte.readable());
-    assert!(!pte.writable());
-    assert!(pte.executable());
-
-    // rodata
-    pte = kernel_space.page_table.translate(mrodata.into()).unwrap();
-    assert!(pte.readable());
-    assert!(!pte.writable());
-    assert!(!pte.executable());
-
-    // data
-    pte = kernel_space.page_table.translate(mdata.into()).unwrap();
-    assert!(pte.readable());
-    assert!(pte.writable());
-    assert!(!pte.executable());
-
-    // bss
-    pte = kernel_space.page_table.translate(mbss.into()).unwrap();
-    assert!(pte.readable());
-    assert!(pte.writable());
-    assert!(!pte.executable());
-
-    info!("remap_test PASSED");
 }

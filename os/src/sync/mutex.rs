@@ -33,7 +33,6 @@ impl<T> Mutex<T> {
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {
-            // busy-wait (spin)
             while self.locked.load(Ordering::Relaxed) {
                 spin_loop()
             }

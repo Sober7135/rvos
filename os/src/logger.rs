@@ -31,7 +31,7 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
-pub(crate) fn init() {
+pub fn init() {
     static LOGGER: Logger = Logger;
     log::set_logger(&LOGGER).unwrap();
     let env = option_env!("LOG").unwrap_or("TRACE");

@@ -29,18 +29,18 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     ret
 }
 
-pub(crate) fn sys_write(fd: usize, buf: &[u8]) -> isize {
+pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
     syscall(Syscall::WRITE, [fd, buf.as_ptr() as usize, buf.len()])
 }
 
-pub(crate) fn sys_exit(state: i32) -> isize {
+pub fn sys_exit(state: i32) -> isize {
     syscall(Syscall::EXIT, [state as usize, 0, 0])
 }
 
-pub(crate) fn sys_yield() -> isize {
+pub fn sys_yield() -> isize {
     syscall(Syscall::YIELD, [0, 0, 0])
 }
 
-pub(crate) fn sys_get_time() -> isize {
+pub fn sys_get_time() -> isize {
     syscall(Syscall::GETTIME, [0, 0, 0])
 }

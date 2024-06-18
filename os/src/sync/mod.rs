@@ -1,1 +1,2 @@
-pub(crate) mod mutex;
+mod mutex;
+pub use mutex::Mutex;

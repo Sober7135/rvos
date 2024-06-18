@@ -3,16 +3,16 @@ use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS, SV39_ADDR_WIDTH, SV39_PPN_WIDTH};
 use core::fmt::Debug;
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct PhysicalAddr(pub(crate) usize);
+pub struct PhysicalAddr(pub usize);
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct VirtualAddr(pub(crate) usize);
+pub struct VirtualAddr(pub usize);
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct PhysicalPageNumber(pub(crate) usize);
+pub struct PhysicalPageNumber(pub usize);
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct VirtualPageNumber(pub(crate) usize);
+pub struct VirtualPageNumber(pub usize);
 
 impl From<usize> for PhysicalAddr {
     fn from(value: usize) -> Self {
@@ -115,25 +115,25 @@ impl From<VirtualPageNumber> for VirtualAddr {
 
 impl PhysicalPageNumber {
     /// Get page table entry at `pte.ppn + va.vpn[i]`
-    pub(crate) fn get_pte(&self, offset: usize) -> &'static mut PageTableEntry {
+    pub fn get_pte(&self, offset: usize) -> &'static mut PageTableEntry {
         let pa: PhysicalAddr =
             (PhysicalAddr::from(*self).0 + offset * core::mem::size_of::<PageTableEntry>()).into();
         unsafe { (pa.0 as *mut PageTableEntry).as_mut().unwrap() }
     }
 
-    pub(crate) fn get_mut<T>(&self) -> &'static mut T {
+    pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysicalAddr = (*self).into();
         unsafe { (pa.0 as *mut T).as_mut().unwrap() }
     }
 
-    pub(crate) fn get_bytes_array(&self) -> &'static mut [u8] {
+    pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysicalAddr = (*self).into();
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
 }
 
 impl VirtualPageNumber {
-    pub(crate) fn get_indexes(&self) -> [usize; 3] {
+    pub fn get_indexes(&self) -> [usize; 3] {
         let mut ret = [0usize; 3];
         let mut vpns = self.0;
         for i in 0..3 {
@@ -145,36 +145,36 @@ impl VirtualPageNumber {
 }
 
 impl PhysicalAddr {
-    pub(crate) fn page_offset(&self) -> usize {
+    pub fn page_offset(&self) -> usize {
         self.0 & ((1 << PAGE_SIZE_BITS) - 1)
     }
 
-    pub(crate) fn floor(&self) -> PhysicalPageNumber {
+    pub fn floor(&self) -> PhysicalPageNumber {
         PhysicalPageNumber(self.0 / PAGE_SIZE)
     }
 
-    pub(crate) fn ceil(&self) -> PhysicalPageNumber {
+    pub fn ceil(&self) -> PhysicalPageNumber {
         PhysicalPageNumber((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
 }
 
 impl VirtualAddr {
-    pub(crate) fn get_offset(&self) -> usize {
+    pub fn get_offset(&self) -> usize {
         self.0 & ((1 << PAGE_SIZE_BITS) - 1)
     }
 
-    pub(crate) fn floor(&self) -> VirtualPageNumber {
+    pub fn floor(&self) -> VirtualPageNumber {
         VirtualPageNumber(self.0 / PAGE_SIZE)
     }
 
-    pub(crate) fn ceil(&self) -> VirtualPageNumber {
+    pub fn ceil(&self) -> VirtualPageNumber {
         VirtualPageNumber((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
 }
 
-pub(crate) type VPNRange = SimpleRange<VirtualPageNumber>;
+pub type VPNRange = SimpleRange<VirtualPageNumber>;
 
-pub(crate) trait StepByOne {
+pub trait StepByOne {
     fn step(&mut self);
 }
 
@@ -185,7 +185,7 @@ impl StepByOne for VirtualPageNumber {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct SimpleRange<T>
+pub struct SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd,
 {
@@ -197,16 +197,16 @@ impl<T> SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd,
 {
-    pub(crate) fn new(l: T, r: T) -> Self {
+    pub fn new(l: T, r: T) -> Self {
         assert!(l <= r);
         Self { l, r }
     }
 
-    pub(crate) fn get_start(&self) -> T {
+    pub fn get_start(&self) -> T {
         self.l
     }
 
-    pub(crate) fn get_end(&self) -> T {
+    pub fn get_end(&self) -> T {
         self.r
     }
 }
@@ -225,7 +225,7 @@ where
     }
 }
 
-pub(crate) struct SimpleRangeIterator<T>
+pub struct SimpleRangeIterator<T>
 where
     T: StepByOne + Clone + Copy,
 {

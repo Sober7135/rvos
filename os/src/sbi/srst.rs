@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(crate) enum ResetType {
+pub enum ResetType {
     Shutdown,
     ColdReboot,
     WarmReboot,
@@ -18,7 +18,7 @@ impl ResetType {
     }
 }
 
-pub(crate) enum ResetReason {
+pub enum ResetReason {
     NoReason,
     SystemFailure,
 }
@@ -32,7 +32,7 @@ impl ResetReason {
     }
 }
 
-pub(crate) fn system_reset(reset_type: ResetType, reset_reason: ResetReason) -> SbiRet {
+pub fn system_reset(reset_type: ResetType, reset_reason: ResetReason) -> SbiRet {
     binary::sbi_call_2(
         Eid::SRST,
         0,

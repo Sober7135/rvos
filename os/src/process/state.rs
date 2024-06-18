@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum TaskStatus {
-    Ready,
+pub enum TaskState {
+    Runnable,
     Running,
-    Exited,
+    Zombie,
 }

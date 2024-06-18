@@ -1,11 +1,11 @@
 use crate::{
     mm::copy_from_user,
     print,
-    task::{mark_current_exited, mark_current_suspend, run_next_task},
+    process::{mark_current_exit, mark_current_suspend, processor::schedule},
     timer::get_time_ms,
 };
 use log::info;
-pub(crate) struct Syscall;
+pub struct Syscall;
 
 // https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
 impl Syscall {
@@ -18,7 +18,7 @@ impl Syscall {
 
 // a0-a2 for arguments, a7 for syscall id
 // return in a0
-pub(crate) fn syscall(id: usize, args: [usize; 3]) -> isize {
+pub fn syscall(id: usize, args: [usize; 3]) -> isize {
     match id {
         Syscall::WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         Syscall::READ => unimplemented!(),
@@ -47,14 +47,14 @@ fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
 fn sys_exit(exit_code: i32) -> isize {
     info!("[kernel] Application exited with code {}", exit_code);
     // mark current task to exit and run next
-    mark_current_exited();
-    run_next_task();
+    mark_current_exit(exit_code);
+    schedule();
     unreachable!()
 }
 
 fn sys_yield() -> isize {
     mark_current_suspend();
-    run_next_task();
+    schedule();
     0
 }
 

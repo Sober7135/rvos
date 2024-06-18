@@ -46,4 +46,7 @@ clean:
 		@cargo clean
 		@rm -f os/src/link_app.S
 
+clippy:
+		@cargo clippy
+
 .PHONY: user kernel

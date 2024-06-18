@@ -10,6 +10,7 @@ extern crate bitflags;
 extern crate buddy_system_allocator;
 
 use core::arch::global_asm;
+use process::processor::schedule;
 
 #[macro_use]
 mod console;
@@ -17,12 +18,12 @@ mod config;
 mod lang_items;
 mod loader;
 mod logger;
-pub(crate) mod mm;
+mod mm;
 mod sbi;
 mod stack_trace;
 mod sync;
 mod syscall;
-mod task;
+mod process;
 mod timer;
 mod trap;
 
@@ -46,5 +47,7 @@ fn rust_main() {
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    task::run_first_task();
+    loader::init();
+    process::add_init_proc();
+    schedule();
 }

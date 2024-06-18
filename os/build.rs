@@ -5,7 +5,7 @@ use std::{
 
 fn main() {
     let profile = std::env::var("PROFILE").unwrap();
-    let target_path = TARGET_PATH_WITHOUT_MODE.to_string() + profile.as_str() + "/";
+    let target_path = TARGET_PATH_WITHOUT_MODE.to_string() + profile.as_str();
     println!("cargo:rerun-if-changed=../usr/src/");
     println!("cargo:rerun-if-changed={}", target_path);
     insert_app(target_path).unwrap();
@@ -42,6 +42,16 @@ _num_apps:
     }
 
     writeln!(link_file, r#"    .quad app_{}_end"#, apps.len() - 1)?;
+    writeln!(
+        link_file,
+        r#"    
+    .global _app_names
+_app_names:"#
+    )?;
+
+    for app in apps.iter() {
+        writeln!(link_file, r#"    .string "{}""#, app)?;
+    }
 
     for (i, app) in apps.iter().enumerate() {
         let start = format!("app_{}_start", i);

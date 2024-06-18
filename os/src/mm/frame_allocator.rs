@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
 use super::address::{PhysicalAddr, PhysicalPageNumber};
-use crate::{config::MEMORY_END, sync::mutex::Mutex};
+use crate::{config::MEMORY_END, sync::Mutex};
 use alloc::vec::Vec;
 use lazy_static::*;
 use log::info;
@@ -21,16 +21,16 @@ lazy_static! {
     };
 }
 
-pub(crate) fn frame_alloc() -> Option<FrameTracker> {
+pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR.lock().alloca().map(FrameTracker::new)
 }
 
-pub(crate) fn frame_dealloc(ppn: PhysicalPageNumber) {
+pub fn frame_dealloc(ppn: PhysicalPageNumber) {
     FRAME_ALLOCATOR.lock().dealloca(ppn)
 }
 
-pub(crate) struct FrameTracker {
-    pub(crate) ppn: PhysicalPageNumber,
+pub struct FrameTracker {
+    pub ppn: PhysicalPageNumber,
 }
 
 impl Debug for FrameTracker {
@@ -52,12 +52,12 @@ impl Drop for FrameTracker {
 }
 
 impl FrameTracker {
-    pub(crate) fn new(ppn: PhysicalPageNumber) -> Self {
+    pub fn new(ppn: PhysicalPageNumber) -> Self {
         Self { ppn }
     }
 }
 
-pub(crate) trait FrameAllocator {
+pub trait FrameAllocator {
     fn new(start: PhysicalPageNumber, end: PhysicalPageNumber) -> Self;
     fn alloca(&mut self) -> Option<PhysicalPageNumber>;
     fn dealloca(&mut self, ppn: PhysicalPageNumber);
@@ -100,7 +100,7 @@ impl FrameAllocator for StackAllocator {
 }
 
 #[allow(unused)]
-pub(crate) fn frame_allocator_test() {
+pub fn frame_allocator_test() {
     let mut v: Vec<FrameTracker> = Vec::new();
     for i in 0..5 {
         let frame = frame_alloc().unwrap();

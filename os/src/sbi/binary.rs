@@ -2,20 +2,20 @@
 
 use super::*;
 
-pub(crate) struct Eid;
+pub struct Eid;
 
 impl Eid {
-    pub(crate) const SRST: usize = 0x53525354;
-    pub(crate) const TIME: usize = 0x54494D45;
+    pub const SRST: usize = 0x53525354;
+    pub const TIME: usize = 0x54494D45;
 }
 
-pub(crate) struct SbiRet {
+pub struct SbiRet {
     error: usize,
     value: usize,
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_0(eid: usize, fid: usize) -> SbiRet {
+pub fn sbi_call_0(eid: usize, fid: usize) -> SbiRet {
     let (error, value);
     unsafe {
         asm!(
@@ -29,7 +29,7 @@ pub(crate) fn sbi_call_0(eid: usize, fid: usize) -> SbiRet {
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_1(eid: usize, fid: usize, arg0: usize) -> SbiRet {
+pub fn sbi_call_1(eid: usize, fid: usize, arg0: usize) -> SbiRet {
     let (error, value);
     unsafe {
         asm!(
@@ -43,7 +43,7 @@ pub(crate) fn sbi_call_1(eid: usize, fid: usize, arg0: usize) -> SbiRet {
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_2(eid: usize, fid: usize, arg0: usize, arg1: usize) -> SbiRet {
+pub fn sbi_call_2(eid: usize, fid: usize, arg0: usize, arg1: usize) -> SbiRet {
     let (error, value);
     unsafe {
         asm!(
@@ -58,7 +58,7 @@ pub(crate) fn sbi_call_2(eid: usize, fid: usize, arg0: usize, arg1: usize) -> Sb
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_3(eid: usize, fid: usize, arg0: usize, arg1: usize, arg2: usize) -> SbiRet {
+pub fn sbi_call_3(eid: usize, fid: usize, arg0: usize, arg1: usize, arg2: usize) -> SbiRet {
     let (error, value);
     unsafe {
         asm!(
@@ -74,7 +74,7 @@ pub(crate) fn sbi_call_3(eid: usize, fid: usize, arg0: usize, arg1: usize, arg2:
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_4(
+pub fn sbi_call_4(
     eid: usize,
     fid: usize,
     arg0: usize,
