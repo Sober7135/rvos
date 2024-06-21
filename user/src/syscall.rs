@@ -13,6 +13,7 @@ impl Syscall {
     const GETTIME: usize = 169;
     const GETPID: usize = 172;
     const FORK: usize = 220;
+    const EXEC: usize = 221;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -53,4 +54,8 @@ pub fn sys_getpid() -> isize {
 
 pub fn sys_fork() -> isize {
     syscall(Syscall::FORK, [0, 0, 0])
+}
+
+pub fn sys_exec(path: &str) -> isize {
+    syscall(Syscall::EXEC, [path.as_ptr() as usize, 0, 0])
 }

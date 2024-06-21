@@ -49,3 +49,7 @@ pub fn getpid() -> isize {
 pub fn fork() -> isize {
     sys_fork()
 }
+
+pub fn exec(path: &str) -> isize {
+    sys_exec(path)
+}

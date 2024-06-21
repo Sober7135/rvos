@@ -47,8 +47,11 @@ pub fn trap_handler() {
         }
         Trap::Exception(Exception::UserEnvCall) => {
             context.sepc += 4;
-            context.x[10] =
+            // current proccess maybe changed
+            let ret =
                 syscall(context.x[17], [context.x[10], context.x[11], context.x[12]]) as usize;
+            let context = get_current_trap_context();
+            context.x[10] = ret;
         }
         Trap::Exception(Exception::LoadPageFault) => {
             error!("Load page fault");
@@ -123,5 +126,5 @@ fn set_kernel_trap_entry() {
 
 #[no_mangle]
 fn trap_from_kernel() -> ! {
-    panic!("")
+    panic!("sepc=0x{:x}, stval={:?}", sepc::read(), stval::read());
 }

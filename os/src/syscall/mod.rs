@@ -7,7 +7,6 @@ use crate::{
     },
     timer::get_time_ms,
 };
-use log::{debug, info};
 pub struct Syscall;
 
 // https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
@@ -19,6 +18,7 @@ impl Syscall {
     const GETTIME: usize = 169;
     const GETPID: usize = 172;
     const FORK: usize = 220; // clone ???
+    const EXEC: usize = 221;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -32,6 +32,7 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
         Syscall::GETTIME => sys_get_time(),
         Syscall::GETPID => sys_getpid(),
         Syscall::FORK => sys_fork(),
+        Syscall::EXEC => sys_exec(args[0] as *const u8),
         _ => panic!("unsupport system call!!!"),
     }
 }
@@ -81,4 +82,8 @@ fn sys_fork() -> isize {
     child_inner.get_trap_context().x[10] = 0;
 
     child_pid as isize
+}
+
+fn sys_exec(path: *const u8) -> isize {
+    get_current_task().unwrap().exec(path)
 }

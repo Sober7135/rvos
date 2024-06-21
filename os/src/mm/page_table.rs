@@ -3,14 +3,17 @@ use super::{
     frame_allocator::{frame_alloc, FrameTracker},
 };
 use crate::{
-    config::SV39_PPN_WIDTH,
+    config::{PAGE_SIZE, SV39_PPN_WIDTH},
     mm::{
         address::{PhysicalAddr, StepByOne},
         VirtualAddr,
     },
     process::processor::get_current_user_token,
 };
-use alloc::vec::*;
+use alloc::{
+    string::{String, ToString},
+    vec::*,
+};
 use bitflags::*;
 use log::info;
 
@@ -115,6 +118,21 @@ impl PageTable {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
+    // Assume that the length of the str is less than 4K
+    pub fn translate_str(&self, ptr: *const u8) -> &str {
+        let bytes = &self
+            .translate(VirtualAddr::from(ptr as usize).into())
+            .unwrap()
+            .get_ppn()
+            .get_bytes_array()[ptr as usize % PAGE_SIZE..];
+
+        let mut len = 0;
+        while unsafe { *bytes.get_unchecked(len) } != 0 {
+            len += 1;
+        }
+        unsafe { core::str::from_utf8_unchecked(&bytes[0..len]) }
+    }
+
     pub fn get_token(&self) -> usize {
         // 8 for sv39 mode
         8usize << 60 | self.ppn.0
@@ -197,4 +215,10 @@ pub fn copy_from_user(ptr: *const u8, len: usize) -> Vec<&'static [u8]> {
         start = end_va.into();
     }
     v
+}
+
+#[allow(unused)]
+pub fn translate_str(token: usize, ptr: *const u8) -> String {
+    let pgtbl = PageTable::from_token(token);
+    pgtbl.translate_str(ptr).to_string()
 }

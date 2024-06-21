@@ -22,7 +22,7 @@ impl TaskManager {
     }
 
     pub fn add(&mut self, task: Arc<TaskControlBlock>) {
-        self.runnable_queue.push_back(task)
+        self.runnable_queue.push_back(task);
     }
 
     pub fn fetch(&mut self) -> Option<Arc<TaskControlBlock>> {

@@ -2,17 +2,17 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
-use log::debug;
 
-use crate::{sync::Mutex, trap::TrapContext};
+use crate::{loader::get_app_data_by_name, sync::Mutex, trap::TrapContext};
 
 use super::{
     context::TaskContext,
     kernel_space::{kstack_alloc, kstack_dealloc},
+    kernel_stack_position,
     manager::add_task,
     pid::{pid_alloc, PidHandle},
     state::TaskState,
-    MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
+    translate_str, MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
 };
 
 #[derive(Debug)]
@@ -90,8 +90,32 @@ impl TaskControlBlock {
     }
 
     // TODO
-    pub fn exec(&self, _elf_data: &[u8]) {
-        todo!()
+    pub fn exec(&self, path: *const u8) -> isize {
+        // debug!("");
+        let mut inner = self.inner.lock();
+        let path = translate_str(inner.get_user_token(), path);
+
+        if let Some(data) = get_app_data_by_name(&path) {
+            let (mm_set, user_sp, entry_point) = MemorySet::from_elf(data);
+            let trap_context_ppn = mm_set
+                .translate(VirtualAddr::from(TRAP_CONTEXT).into())
+                .unwrap()
+                .get_ppn();
+
+            inner.memory_set = mm_set;
+            inner.trap_context_ppn = trap_context_ppn;
+            inner.base_size = user_sp;
+            *inner.get_trap_context() = TrapContext::app_init_context(
+                entry_point,
+                kernel_stack_position(self.pid.0).1,
+                user_sp,
+            );
+
+            // debug!("");
+            0
+        } else {
+            -1
+        }
     }
 
     // TODO lazy
@@ -106,8 +130,6 @@ impl TaskControlBlock {
             .translate(VirtualAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .get_ppn();
-
-        debug!("{:?}", parent_inner.context);
 
         let inner = TaskControlBlockInner {
             state: TaskState::Runnable,

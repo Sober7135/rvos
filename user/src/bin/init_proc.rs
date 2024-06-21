@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use user_lib::{fork, getpid};
+use user_lib::{exec, fork, getpid};
 
 #[macro_use]
 extern crate user_lib;
@@ -13,6 +13,8 @@ unsafe fn main() -> i32 {
     if pid == 0 {
         println!("I'm child, parent pid={}", pid);
         println!("test pid={}", getpid());
+        exec("00power_3\0");
+        println!("after exec 00power_3")
     } else {
         println!("I'm parent, pid={}", pid);
         println!("test pid={}", getpid());

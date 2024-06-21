@@ -1,11 +1,7 @@
 use crate::{sync::Mutex, trap::TrapContext};
 
 use super::{
-    context::TaskContext,
-    manager::{add_task, fetch_task},
-    state::TaskState,
-    switch::__switch,
-    TaskControlBlock,
+    context::TaskContext, manager::fetch_task, state::TaskState, switch::__switch, TaskControlBlock,
 };
 
 use alloc::sync::Arc;
@@ -81,8 +77,7 @@ pub fn schedule() {
         &mut TaskContext::default() as *mut TaskContext
     } else {
         let current = current.unwrap();
-        // if current is Some, add it to task manager.
-        add_task(current.clone()); // TODO we are holding current's lock
+        // we dont need to add to TaskManager. Because that if the task is Runnable, it will add to TaskManager at mark_current_suspend
         let mut task = current.inner.lock();
         // current will live enough longer, so we use ptr to avoid lifetime check.
         task.get_task_context_ptr_mut()

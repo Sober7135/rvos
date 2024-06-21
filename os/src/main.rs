@@ -19,11 +19,11 @@ mod lang_items;
 mod loader;
 mod logger;
 mod mm;
+mod process;
 mod sbi;
 mod stack_trace;
 mod sync;
 mod syscall;
-mod process;
 mod timer;
 mod trap;
 
