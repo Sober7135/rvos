@@ -51,7 +51,7 @@ pub enum MapType {
 }
 
 bitflags! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     pub struct MapPermission : u8 {
       const R = 1 << 1;
       const W = 1 << 2;
@@ -72,6 +72,15 @@ impl MapArea {
             date_frames: BTreeMap::new(),
             map_type,
             map_perm,
+        }
+    }
+
+    pub fn from_other(area: &MapArea) -> Self {
+        Self {
+            vpn_range: area.vpn_range,
+            date_frames: BTreeMap::new(),
+            map_type: area.map_type,
+            map_perm: area.map_perm,
         }
     }
 
@@ -345,6 +354,25 @@ impl MemorySet {
             user_stack_top,
             elf.header.pt2.entry_point() as usize,
         )
+    }
+
+    pub fn from_other_proc(other: &MemorySet) -> Self {
+        let mut this = MemorySet::new_bare();
+        // Map trampoline
+        this.map_trampoline();
+
+        for other_area in other.areas.iter() {
+            let area = MapArea::from_other(other_area);
+            this.push(area, None);
+            // copy data
+            for vpn in other_area.vpn_range {
+                let src = other.translate(vpn).unwrap().get_ppn();
+                let dst = this.translate(vpn).unwrap().get_ppn();
+                dst.get_bytes_array().copy_from_slice(src.get_bytes_array());
+            }
+        }
+
+        this
     }
 
     pub fn activate(&self) {

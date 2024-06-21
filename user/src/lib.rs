@@ -41,3 +41,11 @@ pub fn yield_() -> isize {
 pub fn get_time() -> isize {
     sys_get_time()
 }
+
+pub fn getpid() -> isize {
+    sys_getpid()
+}
+
+pub fn fork() -> isize {
+    sys_fork()
+}

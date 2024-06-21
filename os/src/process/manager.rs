@@ -1,7 +1,5 @@
-use alloc::{collections::VecDeque, sync::Arc};
-use log::info;
-
 use crate::sync::Mutex;
+use alloc::{collections::VecDeque, sync::Arc};
 
 use super::task::TaskControlBlock;
 use lazy_static::lazy_static;
@@ -37,6 +35,5 @@ pub fn add_task(task: Arc<TaskControlBlock>) {
 }
 
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
-    info!("{:?}", TASK_MANAGER.lock().runnable_queue.len());
     TASK_MANAGER.lock().fetch()
 }

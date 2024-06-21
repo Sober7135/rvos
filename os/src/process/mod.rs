@@ -21,7 +21,7 @@ use state::TaskState;
 use task::TaskControlBlock;
 
 lazy_static! {
-    static ref INIT_PROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
+    static ref INIT_PROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::from_elf(
         get_app_data_by_name("init_proc").unwrap()
     ));
 }

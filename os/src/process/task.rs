@@ -2,12 +2,14 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
+use log::debug;
 
 use crate::{sync::Mutex, trap::TrapContext};
 
 use super::{
     context::TaskContext,
     kernel_space::{kstack_alloc, kstack_dealloc},
+    manager::add_task,
     pid::{pid_alloc, PidHandle},
     state::TaskState,
     MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
@@ -37,7 +39,7 @@ pub struct TaskControlBlockInner {
 }
 
 impl TaskControlBlock {
-    pub fn new(elf_data: &[u8]) -> Self {
+    pub fn from_elf(elf_data: &[u8]) -> Self {
         let pid = pid_alloc();
         let (_, kstack_top) = kstack_alloc(pid.0);
 
@@ -45,7 +47,7 @@ impl TaskControlBlock {
         let task_cx = TaskContext::goto_trap_return(kstack_top);
         let (mm_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
 
-        let trap_cx_ppn = mm_set
+        let trap_context_ppn = mm_set
             .translate(VirtualAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .get_ppn();
@@ -56,7 +58,7 @@ impl TaskControlBlock {
                 state: status,
                 context: task_cx,
                 memory_set: mm_set,
-                trap_context_ppn: trap_cx_ppn,
+                trap_context_ppn,
                 base_size: user_sp,
                 parent: None,
                 children: Vec::new(),
@@ -64,6 +66,7 @@ impl TaskControlBlock {
             }),
         };
 
+        // TODO get_trap_context use lock, we can not use it. TO BE OPTIMAZIED.
         let trap_cx = tcb.get_trap_context();
         *trap_cx = TrapContext::app_init_context(entry_point, kstack_top, user_sp);
 
@@ -93,7 +96,40 @@ impl TaskControlBlock {
 
     // TODO lazy
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
-        todo!()
+        let pid = pid_alloc();
+        let (_, kstack_top) = kstack_alloc(pid.0);
+
+        let mut parent_inner = self.inner.lock();
+
+        let mm_set = MemorySet::from_other_proc(&parent_inner.memory_set);
+        let trap_context_ppn = mm_set
+            .translate(VirtualAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .get_ppn();
+
+        debug!("{:?}", parent_inner.context);
+
+        let inner = TaskControlBlockInner {
+            state: TaskState::Runnable,
+            context: TaskContext::goto_trap_return(kstack_top), // TODO
+            memory_set: mm_set,
+            trap_context_ppn,
+            base_size: parent_inner.base_size,
+            parent: Some(Arc::downgrade(self)),
+            children: Vec::new(),
+            exit_code: 0,
+        };
+
+        inner.get_trap_context().kernel_sp = kstack_top;
+
+        let child = Arc::new(Self {
+            pid,
+            inner: Mutex::new(inner),
+        });
+        add_task(child.clone());
+
+        parent_inner.children.push(child.clone());
+        child
     }
 }
 

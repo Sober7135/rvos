@@ -7,6 +7,7 @@ use crate::timer::set_next_trigger;
 use crate::{config::TRAMPOLINE, syscall::syscall};
 use core::arch::{asm, global_asm};
 use log::error;
+use riscv::register::sepc;
 use riscv::register::{
     scause::{self, Exception, Interrupt, Trap},
     sie,
@@ -42,7 +43,7 @@ pub fn trap_handler() {
             error!("Illegal instruction");
             mark_current_exit(-1);
             schedule();
-            unreachable!("{}:{}", file!(), column!());
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::UserEnvCall) => {
             context.sepc += 4;
@@ -53,19 +54,23 @@ pub fn trap_handler() {
             error!("Load page fault");
             mark_current_exit(-1);
             schedule();
-            unreachable!("{}:{}", file!(), column!());
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::StorePageFault) => {
-            error!("Store page fault");
+            error!(
+                "Store page fault. sepc=0x{:x}, stval=0x{:x}",
+                sepc::read(),
+                stval::read()
+            );
             mark_current_exit(-1);
             schedule();
-            unreachable!("{}:{}", file!(), column!());
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::StoreFault) => {
             error!("Store fault");
             mark_current_exit(-1);
             schedule();
-            unreachable!("{}:{}", file!(), column!());
+            unreachable!("{}:{}", file!(), line!());
         }
         _ => {
             error!(

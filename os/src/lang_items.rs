@@ -1,4 +1,5 @@
 use crate::sbi::shutdown;
+#[allow(unused_imports)]
 use crate::stack_trace::print_stack_trace;
 use core::panic::PanicInfo;
 use log::error;

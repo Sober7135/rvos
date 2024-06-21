@@ -11,6 +11,8 @@ impl Syscall {
     const EXIT: usize = 93;
     const YIELD: usize = 124;
     const GETTIME: usize = 169;
+    const GETPID: usize = 172;
+    const FORK: usize = 220;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -43,4 +45,12 @@ pub fn sys_yield() -> isize {
 
 pub fn sys_get_time() -> isize {
     syscall(Syscall::GETTIME, [0, 0, 0])
+}
+
+pub fn sys_getpid() -> isize {
+    syscall(Syscall::GETPID, [0, 0, 0])
+}
+
+pub fn sys_fork() -> isize {
+    syscall(Syscall::FORK, [0, 0, 0])
 }

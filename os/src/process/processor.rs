@@ -76,7 +76,8 @@ pub fn schedule() {
     drop(inner);
     drop(cpu);
 
-    let current = if current.is_none() {
+    let current = if current.is_none() || current.as_ref().unwrap().get_state() == TaskState::Zombie
+    {
         &mut TaskContext::default() as *mut TaskContext
     } else {
         let current = current.unwrap();
