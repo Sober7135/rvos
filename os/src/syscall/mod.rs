@@ -1,10 +1,11 @@
 use crate::{
-    mm::copy_from_user,
+    mm::transfer_byte_buffer,
     print,
     process::{
         mark_current_exit, mark_current_suspend,
         processor::{get_current_task, schedule},
     },
+    sbi::console_getchar,
     timer::get_time_ms,
 };
 pub struct Syscall;
@@ -26,7 +27,7 @@ impl Syscall {
 pub fn syscall(id: usize, args: [usize; 3]) -> isize {
     match id {
         Syscall::WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
-        Syscall::READ => unimplemented!(),
+        Syscall::READ => sys_read(args[0], args[1] as *const u8, args[2]),
         Syscall::EXIT => sys_exit(args[0] as i32),
         Syscall::YIELD => sys_yield(),
         Syscall::GETTIME => sys_get_time(),
@@ -38,11 +39,39 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
 }
 
 const FD_STDOUT: usize = 1;
+const FD_STDIN: usize = 0;
+
+fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
+    match fd {
+        FD_STDIN => {
+            assert_eq!(len, 1, "current we only support one character");
+            let mut c;
+            loop {
+                c = console_getchar();
+                if c == 0 {
+                    mark_current_suspend();
+                    schedule();
+                } else {
+                    break;
+                }
+            }
+            let ch = c as u8;
+            unsafe {
+                transfer_byte_buffer(buf, len)
+                    .get_unchecked_mut(0)
+                    .as_mut_ptr()
+                    .write_volatile(ch)
+            }
+            1
+        }
+        _ => panic!("current we don't support other fd"),
+    }
+}
 
 fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     match fd {
         FD_STDOUT => {
-            let buffer = copy_from_user(buf, len);
+            let buffer = transfer_byte_buffer(buf, len);
             for buf in buffer {
                 print!("{}", core::str::from_utf8(buf).unwrap());
             }

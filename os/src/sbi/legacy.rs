@@ -6,10 +6,11 @@ pub struct Eid;
 
 impl Eid {
     pub const CONSOLE_PUTCHAR: usize = 0x01;
+    pub const CONSOLE_GETCHAR: usize = 0x02;
 }
 
 #[inline(always)]
-pub fn sbi_call_0(eid: usize, fid: usize) -> usize {
+pub fn sbi_call_0(eid: usize) -> usize {
     let error;
     unsafe {
         asm!(

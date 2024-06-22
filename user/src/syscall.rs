@@ -32,6 +32,10 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     ret
 }
 
+pub fn sys_read(fd: usize, buf: &mut [u8]) -> isize {
+    syscall(Syscall::READ, [fd, buf.as_mut_ptr() as usize, buf.len()])
+}
+
 pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
     syscall(Syscall::WRITE, [fd, buf.as_ptr() as usize, buf.len()])
 }

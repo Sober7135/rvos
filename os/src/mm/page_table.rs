@@ -190,7 +190,7 @@ pub fn translate_test() {
     info!("translate_test PASSED!");
 }
 
-pub fn copy_from_user(ptr: *const u8, len: usize) -> Vec<&'static [u8]> {
+pub fn transfer_byte_buffer(ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
     let page_table = PageTable::from_token(get_current_user_token());
     let mut v = Vec::new();
     let mut start = ptr as usize;
@@ -206,7 +206,7 @@ pub fn copy_from_user(ptr: *const u8, len: usize) -> Vec<&'static [u8]> {
         end_va = end_va.min(VirtualAddr::from(end));
 
         v.push(
-            &page_table
+            &mut page_table
                 .translate(start_va.floor())
                 .unwrap()
                 .get_ppn()

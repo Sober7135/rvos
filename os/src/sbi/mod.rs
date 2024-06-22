@@ -12,6 +12,10 @@ pub fn console_putchar(c: usize) -> usize {
     legacy::sbi_call_1(legacy::Eid::CONSOLE_PUTCHAR, c)
 }
 
+pub fn console_getchar() -> usize {
+    legacy::sbi_call_0(legacy::Eid::CONSOLE_GETCHAR)
+}
+
 pub fn shutdown(failure: bool) -> ! {
     use srst::*;
     if !failure {

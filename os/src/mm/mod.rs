@@ -7,7 +7,7 @@ mod page_table;
 
 pub use address::*;
 pub use memory_set::{MapPermission, MemorySet};
-pub use page_table::{copy_from_user, translate_str};
+pub use page_table::{transfer_byte_buffer, translate_str};
 
 #[allow(unused)]
 pub fn test() {

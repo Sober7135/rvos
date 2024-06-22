@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use user_lib::{exec, fork, getpid};
+use user_lib::{console::getchar, exec, fork, getpid};
 
 #[macro_use]
 extern crate user_lib;
@@ -18,7 +18,10 @@ unsafe fn main() -> i32 {
     } else {
         println!("I'm parent, pid={}", pid);
         println!("test pid={}", getpid());
-        loop {}
+        loop {
+            let ch = getchar();
+            println!("{}", ch as char);
+        }
     }
     0
 }
