@@ -118,7 +118,7 @@ impl PageTable {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
-    // Assume that the length of the str is less than 4K
+    // FIXME Assume that the str is within a page.
     pub fn translate_str(&self, ptr: *const u8) -> &str {
         let bytes = &self
             .translate(VirtualAddr::from(ptr as usize).into())
@@ -131,6 +131,21 @@ impl PageTable {
             len += 1;
         }
         unsafe { core::str::from_utf8_unchecked(&bytes[0..len]) }
+    }
+
+    // sizeof T
+    pub fn translate_ref<T>(&self, ptr: *const T) -> &'static T {
+        self.translate(VirtualAddr::from(ptr as usize).into())
+            .unwrap()
+            .get_ppn()
+            .get_mut()
+    }
+
+    pub fn translate_refmut<T>(&self, ptr: *const T) -> &'static mut T {
+        self.translate(VirtualAddr::from(ptr as usize).into())
+            .unwrap()
+            .get_ppn()
+            .get_mut()
     }
 
     pub fn get_token(&self) -> usize {
@@ -221,4 +236,17 @@ pub fn transfer_byte_buffer(ptr: *const u8, len: usize) -> Vec<&'static mut [u8]
 pub fn translate_str(token: usize, ptr: *const u8) -> String {
     let pgtbl = PageTable::from_token(token);
     pgtbl.translate_str(ptr).to_string()
+}
+
+#[allow(unused)]
+/// size_of T must be power of 2 and less than 4096
+pub fn translate_ref<T>(token: usize, ptr: *const T) -> &'static T {
+    let pgtbl = PageTable::from_token(token);
+    pgtbl.translate_ref(ptr)
+}
+
+/// size_of T must be power of 2 and less than 4096
+pub fn translate_refmut<T>(token: usize, ptr: *const T) -> &'static mut T {
+    let pgtbl = PageTable::from_token(token);
+    pgtbl.translate_refmut(ptr)
 }

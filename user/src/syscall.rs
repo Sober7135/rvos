@@ -14,6 +14,7 @@ impl Syscall {
     const GETPID: usize = 172;
     const FORK: usize = 220;
     const EXEC: usize = 221;
+    const WAITPID: usize = 260;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -62,4 +63,8 @@ pub fn sys_fork() -> isize {
 
 pub fn sys_exec(path: &str) -> isize {
     syscall(Syscall::EXEC, [path.as_ptr() as usize, 0, 0])
+}
+
+pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
+    syscall(Syscall::WAITPID, [pid as usize, exit_code_ptr as usize, 0])
 }

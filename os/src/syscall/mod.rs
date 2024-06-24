@@ -10,7 +10,7 @@ use crate::{
 };
 pub struct Syscall;
 
-// https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/include/uapi/asm-generic/unistd.h
+// https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/unistd.h
 impl Syscall {
     const READ: usize = 63;
     const WRITE: usize = 64;
@@ -20,6 +20,7 @@ impl Syscall {
     const GETPID: usize = 172;
     const FORK: usize = 220; // clone ???
     const EXEC: usize = 221;
+    const WAITPID: usize = 260; // wait4 in unistd.h
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -34,6 +35,7 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
         Syscall::GETPID => sys_getpid(),
         Syscall::FORK => sys_fork(),
         Syscall::EXEC => sys_exec(args[0] as *const u8),
+        Syscall::WAITPID => sys_waitpid(args[0] as isize, args[1] as *mut i32),
         _ => panic!("unsupport system call!!!"),
     }
 }
@@ -115,4 +117,9 @@ fn sys_fork() -> isize {
 
 fn sys_exec(path: *const u8) -> isize {
     get_current_task().unwrap().exec(path)
+}
+
+// we dont support option
+fn sys_waitpid(pid: isize, wstatus: *mut i32) -> isize {
+    get_current_task().unwrap().waitpid(pid, wstatus)
 }

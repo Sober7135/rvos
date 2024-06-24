@@ -3,7 +3,12 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::{loader::get_app_data_by_name, sync::Mutex, trap::TrapContext};
+use crate::{
+    loader::get_app_data_by_name,
+    process::{mark_current_suspend, processor::schedule},
+    sync::Mutex,
+    trap::TrapContext,
+};
 
 use super::{
     context::TaskContext,
@@ -12,7 +17,7 @@ use super::{
     manager::add_task,
     pid::{pid_alloc, PidHandle},
     state::TaskState,
-    translate_str, MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
+    translate_refmut, translate_str, MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
 };
 
 #[derive(Debug)]
@@ -81,8 +86,8 @@ impl TaskControlBlock {
         self.inner.lock().get_user_token()
     }
 
-    pub fn get_state(&self) -> TaskState {
-        self.inner.lock().state
+    pub fn is_zombie(&self) -> bool {
+        self.inner.lock().state == TaskState::Zombie
     }
 
     pub fn get_pid(&self) -> usize {
@@ -111,7 +116,6 @@ impl TaskControlBlock {
                 user_sp,
             );
 
-            // debug!("");
             0
         } else {
             -1
@@ -152,6 +156,41 @@ impl TaskControlBlock {
 
         parent_inner.children.push(child.clone());
         child
+    }
+
+    // waitpid
+    pub fn waitpid(&self, pid: isize, exit_code_ptr: *mut i32) -> isize {
+        let mut inner = self.inner.lock();
+        // if there is no child, return -2
+        if inner.children.is_empty() {
+            return -2;
+        }
+        drop(inner);
+        let mut idx = 0;
+        loop {
+            inner = self.inner.lock();
+            if let Some((index, _)) = inner
+                .children
+                .iter()
+                .enumerate()
+                .find(|(_, p)| (pid == -1 || (p.get_pid() == pid as usize)) && p.is_zombie())
+            {
+                idx = index;
+                break;
+            } else {
+                drop(inner);
+                mark_current_suspend();
+                schedule();
+            }
+        }
+        // Found
+        let child = inner.children.remove(idx);
+        let child_inner = child.inner.lock();
+        assert_eq!(Arc::strong_count(&child), 1);
+        if !exit_code_ptr.is_null() {
+            *translate_refmut(child_inner.get_user_token(), exit_code_ptr) = child_inner.exit_code;
+        }
+        child.get_pid() as isize
     }
 }
 

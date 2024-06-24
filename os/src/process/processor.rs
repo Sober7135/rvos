@@ -72,15 +72,15 @@ pub fn schedule() {
     drop(inner);
     drop(cpu);
 
-    let current = if current.is_none() || current.as_ref().unwrap().get_state() == TaskState::Zombie
-    {
+    let current = if current.is_none() || current.as_ref().unwrap().is_zombie() {
+        drop(current); // TODO WHY we should manually drop here
         &mut TaskContext::default() as *mut TaskContext
     } else {
         let current = current.unwrap();
         // we dont need to add to TaskManager. Because that if the task is Runnable, it will add to TaskManager at mark_current_suspend
-        let mut task = current.inner.lock();
+        let ptr = current.inner.lock().get_task_context_ptr_mut();
         // current will live enough longer, so we use ptr to avoid lifetime check.
-        task.get_task_context_ptr_mut()
+        ptr
     };
 
     unsafe { __switch(current, next as *mut TaskContext) }

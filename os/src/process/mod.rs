@@ -56,6 +56,7 @@ pub fn mark_current_exit(exit_code: i32) {
             init.children.push(child.clone());
         }
     }
+
     // TODO is this necessary
     // clear children
     // inner.children.clear();
