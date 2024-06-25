@@ -31,9 +31,13 @@ impl PidAllocator {
     }
 
     pub fn alloc(&mut self) -> PidHandle {
-        let ret = PidHandle(self.current);
-        self.current += 1;
-        ret
+        if let Some(pid) = self.recycled.pop() {
+            PidHandle(pid)
+        } else {
+            let ret = PidHandle(self.current);
+            self.current += 1;
+            ret
+        }
     }
 
     pub fn dealloc(&mut self, pid: usize) {
