@@ -118,6 +118,11 @@ impl PageTable {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
+    fn translate_va(&self, va: VirtualAddr) -> Option<PhysicalAddr> {
+        self.translate(va.into())
+            .map(|ppn| (PhysicalAddr::from(ppn.get_ppn()).0 + va.get_offset()).into())
+    }
+
     // FIXME Assume that the str is within a page.
     pub fn translate_str(&self, ptr: *const u8) -> &str {
         let bytes = &self
@@ -135,16 +140,14 @@ impl PageTable {
 
     // sizeof T
     pub fn translate_ref<T>(&self, ptr: *const T) -> &'static T {
-        self.translate(VirtualAddr::from(ptr as usize).into())
+        self.translate_va(VirtualAddr::from(ptr as usize))
             .unwrap()
-            .get_ppn()
             .get_mut()
     }
 
     pub fn translate_refmut<T>(&self, ptr: *const T) -> &'static mut T {
-        self.translate(VirtualAddr::from(ptr as usize).into())
+        self.translate_va(VirtualAddr::from(ptr as usize).into())
             .unwrap()
-            .get_ppn()
             .get_mut()
     }
 

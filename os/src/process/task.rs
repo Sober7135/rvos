@@ -188,7 +188,7 @@ impl TaskControlBlock {
         let child_inner = child.inner.lock();
         assert_eq!(Arc::strong_count(&child), 1);
         if !exit_code_ptr.is_null() {
-            *translate_refmut(child_inner.get_user_token(), exit_code_ptr) = child_inner.exit_code;
+            *translate_refmut(inner.get_user_token(), exit_code_ptr) = child_inner.exit_code;
         }
         child.get_pid() as isize
     }

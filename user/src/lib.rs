@@ -4,8 +4,14 @@
 #![feature(linkage)]
 #![feature(format_args_nl)]
 #![allow(internal_features)]
+#![feature(alloc_error_handler)]
 
+#[macro_use]
+extern crate alloc;
+
+pub mod config;
 pub mod console;
+mod heap_allocator;
 mod lang_items;
 mod syscall;
 
@@ -14,6 +20,8 @@ use syscall::*;
 #[no_mangle]
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
+    heap_allocator::init_heap();
+    // heap_allocator::heap_test();
     // We don't need to clear bss, because the frame allocator will do that for us.
     exit(main());
     unreachable!("Unreachable! The program must be terminated")
