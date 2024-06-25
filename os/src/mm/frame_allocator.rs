@@ -1,7 +1,10 @@
 use core::fmt::Debug;
 
 use super::address::{PhysicalAddr, PhysicalPageNumber};
-use crate::{config::MEMORY_END, sync::Mutex};
+use crate::{
+    config::{MEMORY_END, PAGE_SIZE},
+    sync::Mutex,
+};
 use alloc::vec::Vec;
 use lazy_static::*;
 use log::info;
@@ -53,6 +56,9 @@ impl Drop for FrameTracker {
 
 impl FrameTracker {
     pub fn new(ppn: PhysicalPageNumber) -> Self {
+        let pa = PhysicalAddr::from(ppn).0 as *mut u8;
+        unsafe { pa.write_bytes(0, PAGE_SIZE) }
+
         Self { ppn }
     }
 }
