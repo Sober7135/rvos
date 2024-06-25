@@ -126,5 +126,10 @@ fn set_kernel_trap_entry() {
 
 #[no_mangle]
 fn trap_from_kernel() -> ! {
-    panic!("sepc=0x{:x}, stval={:?}", sepc::read(), stval::read());
+    panic!(
+        "sepc=0x{:x}, stval={:?}, scause={:?}",
+        sepc::read(),
+        stval::read(),
+        scause::read().bits()
+    );
 }

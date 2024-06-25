@@ -2,8 +2,7 @@ TARGET := riscv64gc-unknown-none-elf
 MODE := release
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
-DISASM_TMP := target/$(TARGET)/$(MODE)/asm
-APPS := user/src/bin/*
+DISASM_DIR := disasm
 OBJCOPY := llvm-objcopy
 GDB := gdb
 vi = nvim --noplugin
@@ -27,6 +26,10 @@ run: build
   	  	-nographic \
   	  	-bios ./bootloader/rustsbi-qemu.bin \
   	  	-device loader,file=$(KERNEL_BIN),addr=0x80200000
+
+disasm: build
+		@mkdir -p $(DISASM_DIR)
+		@rust-objdump -S $(KERNEL_ELF) 1> $(DISASM_DIR)/os.asm 2> /dev/null
 
 gdbserver: build
 		@qemu-system-riscv64 \

@@ -146,7 +146,7 @@ impl PageTable {
     }
 
     pub fn translate_refmut<T>(&self, ptr: *const T) -> &'static mut T {
-        self.translate_va(VirtualAddr::from(ptr as usize).into())
+        self.translate_va(VirtualAddr::from(ptr as usize))
             .unwrap()
             .get_mut()
     }

@@ -6,7 +6,6 @@
 #![allow(internal_features)]
 #![feature(alloc_error_handler)]
 
-#[macro_use]
 extern crate alloc;
 
 pub mod config;
@@ -73,4 +72,12 @@ pub fn wait(exit_code: &mut i32) -> isize {
 
 pub fn waitpid(pid: isize, exit_code: &mut i32) -> isize {
     sys_waitpid(pid, exit_code as *mut i32)
+}
+
+pub fn sleep(len_ms: usize) -> isize {
+    let start = sys_get_time();
+    while sys_get_time() < start + len_ms as isize {
+        sys_yield();
+    }
+    0
 }
