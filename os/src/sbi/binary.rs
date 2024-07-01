@@ -2,8 +2,9 @@
 
 use super::*;
 
-pub(crate) struct EID;
-impl EID {
+pub(crate) struct Eid;
+
+impl Eid {
     pub(crate) const SRST: usize = 0x53525354;
 }
 

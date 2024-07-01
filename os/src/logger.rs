@@ -10,6 +10,9 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::Record) {
+        if !self.enabled(record.metadata()) {
+            return;
+        }
         let color = match record.level() {
             log::Level::Trace => 90, // bright black
             log::Level::Info => 34,  // blue
@@ -17,7 +20,12 @@ impl log::Log for Logger {
             log::Level::Warn => 93,  // bright yellow
             log::Level::Error => 31, // red
         };
-        println!("\u{1B}[0;{}m[{:<5}]\u{1B}[0m {}", color, record.level(), record.args());
+        println!(
+            "\u{1B}[0;{}m[{:<5}]\u{1B}[0m {}",
+            color,
+            record.level(),
+            record.args()
+        );
     }
 
     fn flush(&self) {}
