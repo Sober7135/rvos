@@ -6,6 +6,7 @@ pub(crate) struct Eid;
 
 impl Eid {
     pub(crate) const SRST: usize = 0x53525354;
+    pub(crate) const TIME: usize = 0x54494D45;
 }
 
 pub(crate) struct SbiRet {

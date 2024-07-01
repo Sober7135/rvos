@@ -2,20 +2,29 @@
 #![no_main]
 #![feature(format_args_nl)]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
+
+#[macro_use]
+extern crate alloc;
+extern crate bitflags;
+extern crate buddy_system_allocator;
 
 use core::arch::global_asm;
-use log::{debug, error, info, trace, warn};
 
-mod batch;
 #[macro_use]
 mod console;
+mod config;
 mod lang_items;
+mod loader;
 mod logger;
+pub(crate) mod mm;
 mod sbi;
+mod stack_trace;
 mod sync;
 mod syscall;
+mod task;
+mod timer;
 mod trap;
-mod stack_trace;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -29,43 +38,13 @@ fn clear_bss() {
         .for_each(|address| unsafe { (address as *mut u8).write_volatile(0) })
 }
 
-fn print_segment_info(segment: &str, start: usize, end: usize) {
-    trace!("[kernel] .{:6}: [{:#x}, {:#x}]", segment, start, end);
-}
-
 #[no_mangle]
 fn rust_main() {
-    extern "C" {
-        fn stext();
-        fn etext();
-        fn srodata();
-        fn erodata();
-        fn sdata();
-        fn edata();
-        fn sbss();
-        fn ebss();
-        fn stack_lower_bound();
-        fn stack_top();
-    }
     clear_bss();
     logger::init();
-    print_segment_info("text", stext as usize, etext as usize);
-    print_segment_info("rodata", srodata as usize, erodata as usize);
-    print_segment_info("data", sdata as usize, edata as usize);
-    print_segment_info("bss", sbss as usize, ebss as usize);
-    print_segment_info("stack", stack_lower_bound as usize, stack_top as usize);
-
-    trace!("THIS IS TRACE");
-    info!("THIS IS INFO");
-    debug!("THIS IS DEBUG");
-    warn!("THIS IS WARN");
-    error!("THIS IS ERROR");
-
-    println!("Hello, World!");
-
-    panic!("THIS IS PANIC");
+    mm::init();
     trap::init();
-    batch::init();
-    batch::run_next_app();
-
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
+    task::run_first_task();
 }

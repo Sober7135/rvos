@@ -11,19 +11,10 @@ mod syscall;
 
 use syscall::*;
 
-fn clear_bss() {
-    extern "C" {
-        fn ebss();
-        fn sbss();
-    }
-    (ebss as usize..sbss as usize)
-        .for_each(|address| unsafe { (address as *mut u8).write_volatile(0) })
-}
-
 #[no_mangle]
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
-    clear_bss();
+    // We don't need to clear bss, because the frame allocator will do that for us.
     exit(main());
     unreachable!("Unreachable! The program must be terminated")
 }
@@ -41,4 +32,12 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
 
 pub fn exit(state: i32) -> isize {
     sys_exit(state)
+}
+
+pub fn yield_() -> isize {
+    sys_yield()
+}
+
+pub fn get_time() -> isize {
+    sys_get_time()
 }

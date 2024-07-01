@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use super::*;
-use binary::SbiRet;
 
 pub(crate) enum ResetType {
     Shutdown,
@@ -35,7 +34,7 @@ impl ResetReason {
 
 pub(crate) fn system_reset(reset_type: ResetType, reset_reason: ResetReason) -> SbiRet {
     binary::sbi_call_2(
-        binary::Eid::SRST,
+        Eid::SRST,
         0,
         reset_type.value() as _,
         reset_reason.value() as _,

@@ -4,18 +4,19 @@ use std::{
 };
 
 fn main() {
+    let profile = std::env::var("PROFILE").unwrap();
+    let target_path = TARGET_PATH_WITHOUT_MODE.to_string() + profile.as_str() + "/";
     println!("cargo:rerun-if-changed=../usr/src/");
-    println!("cargo:rerun-if-changed={}", TARGET_PATH);
-    insert_app().unwrap();
+    println!("cargo:rerun-if-changed={}", target_path);
+    insert_app(target_path).unwrap();
 }
 
-static TARGET_PATH: &'static str = "./target/riscv64gc-unknown-none-elf/release";
+static TARGET_PATH_WITHOUT_MODE: &str = "./target/riscv64gc-unknown-none-elf/";
 
-fn insert_app() -> Result<()> {
+fn insert_app(target_path: String) -> Result<()> {
     let mut link_file = File::create("src/link_app.S").unwrap();
     let mut apps: Vec<_> = fs::read_dir("../user/src/bin")
         .unwrap()
-        .into_iter()
         .map(|dir_entry| {
             let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
             name_with_ext.drain(name_with_ext.find(".rs").unwrap()..name_with_ext.len());
@@ -29,8 +30,8 @@ fn insert_app() -> Result<()> {
         r#"
     .align 3
     .section .data
-    .global _num_app
-_num_app:
+    .global _num_apps
+_num_apps:
     .quad {}"#,
         apps.len()
     )?;
@@ -42,7 +43,7 @@ _num_app:
 
     writeln!(link_file, r#"    .quad app_{}_end"#, apps.len() - 1)?;
 
-    for i in 0..apps.len() {
+    for (i, app) in apps.iter().enumerate() {
         let start = format!("app_{}_start", i);
         let end = format!("app_{}_end", i);
         writeln!(
@@ -51,10 +52,11 @@ _num_app:
     .section .data # maybe unnecessary
     .global {}
     .global {}
+    .align 3
 {}:
-    .incbin "{}/{}.bin"
+    .incbin "{}/{}"
 {}:"#,
-            start, end, start, TARGET_PATH, apps[i], end
+            start, end, start, target_path, app, end
         )?
     }
     Ok(())
