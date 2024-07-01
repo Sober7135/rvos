@@ -6,12 +6,19 @@
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
 
+mod batch;
+#[macro_use]
 mod console;
 mod lang_items;
 mod logger;
 mod sbi;
+mod sync;
+mod syscall;
+mod trap;
+mod stack_trace;
 
 global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("link_app.S"));
 
 fn clear_bss() {
     extern "C" {
@@ -56,7 +63,9 @@ fn rust_main() {
 
     println!("Hello, World!");
 
-    // panic!("THIS IS PANIC");
+    panic!("THIS IS PANIC");
+    trap::init();
+    batch::init();
+    batch::run_next_app();
 
-    sbi::shutdown(false);
 }
