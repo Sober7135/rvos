@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.20" }
-sbi-rt = { version = "0.0.2", features = ["legacy"] }

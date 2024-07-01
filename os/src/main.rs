@@ -6,10 +6,7 @@
 use core::arch::global_asm;
 use log::{debug, error, info, trace, warn};
 
-use crate::sbi::shutdown;
-
 mod console;
-mod init;
 mod lang_items;
 mod logger;
 mod sbi;
@@ -61,6 +58,5 @@ fn rust_main() {
 
     // panic!("THIS IS PANIC");
 
-    shutdown(false);
-
+    sbi::shutdown(false);
 }
