@@ -1,23 +1,23 @@
-use crate::mm::KERNEL_SPACE;
+use crate::mm::kernel_space::get_kernel_token;
 
 use super::*;
 use riscv::register::sstatus::{self, SPP};
 
 #[derive(Debug)]
 #[repr(C)] //? why is this necessary
-pub(crate) struct TrapContext {
+pub struct TrapContext {
     /// general register
-    pub(crate) x: [usize; 32],
+    pub x: [usize; 32],
     /// supervisor status
-    pub(crate) sstatus: Sstatus,
+    pub sstatus: Sstatus,
     /// supervisor exception program counter
-    pub(crate) sepc: usize,
+    pub sepc: usize,
     // only used in __alltraps
-    pub(crate) kernel_satp: usize,
+    pub kernel_satp: usize,
     // only used in __alltraps
-    pub(crate) kernel_sp: usize,
+    pub kernel_sp: usize,
     // only used in __alltraps
-    pub(crate) trap_handler: usize,
+    pub trap_handler: usize,
 }
 
 impl TrapContext {
@@ -28,14 +28,14 @@ impl TrapContext {
     // kernel_sp for kernel stack's sp, for storing trap context, etc.
     // current each app have a kernel stack
     // sp for user stack's sp, user stack is in the user address space, for app runtime stack
-    pub(crate) fn app_init_context(entry: usize, kernel_sp: usize, user_sp: usize) -> Self {
+    pub fn app_init_context(entry: usize, kernel_sp: usize, user_sp: usize) -> Self {
         let mut _sstatus = sstatus::read();
         _sstatus.set_spp(SPP::User);
         let mut ctxt = TrapContext {
             x: [0; 32],
             sstatus: _sstatus,
             sepc: entry,
-            kernel_satp: KERNEL_SPACE.exclusive_access().get_token(),
+            kernel_satp: get_kernel_token(),
             kernel_sp,
             trap_handler: trap_handler as usize,
         };

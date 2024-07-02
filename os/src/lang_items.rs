@@ -1,4 +1,5 @@
 use crate::sbi::shutdown;
+#[allow(unused_imports)]
 use crate::stack_trace::print_stack_trace;
 use core::panic::PanicInfo;
 use log::error;
@@ -10,10 +11,10 @@ fn panic(info: &PanicInfo) -> ! {
             "[kernel] Panicked at {}:{} {}",
             location.file(),
             location.line(),
-            info.message().unwrap()
+            info.message()
         );
     } else {
-        error!("[kernel] Panicked: {}", info.message().unwrap());
+        error!("[kernel] Panicked: {}", info.message());
     }
     unsafe { print_stack_trace() }
     shutdown(true)

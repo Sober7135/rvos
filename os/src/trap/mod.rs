@@ -1,11 +1,13 @@
 mod context;
 
 use crate::config::TRAP_CONTEXT;
-use crate::task::*;
+use crate::process::processor::{get_current_trap_context, get_current_user_token, schedule};
+use crate::process::{mark_current_exit, mark_current_suspend};
 use crate::timer::set_next_trigger;
 use crate::{config::TRAMPOLINE, syscall::syscall};
 use core::arch::{asm, global_asm};
 use log::error;
+use riscv::register::sepc;
 use riscv::register::{
     scause::{self, Exception, Interrupt, Trap},
     sie,
@@ -13,69 +15,83 @@ use riscv::register::{
     stval, stvec,
 };
 
-pub(crate) use context::TrapContext;
+pub use context::TrapContext;
 
 global_asm!(include_str!("trap.S"));
 
-pub(crate) fn init() {
+pub fn init() {
     set_kernel_trap_entry()
 }
 
-pub(crate) fn enable_timer_interrupt() {
+pub fn enable_timer_interrupt() {
     unsafe { sie::set_stimer() }
 }
 
+// TODO
 #[no_mangle] // avoid mangle, the assembly inside "trap.S" can call trap_handler
-pub(crate) fn trap_handler() {
+pub fn trap_handler() {
     set_kernel_trap_entry();
-    let ctxt = get_current_trap_cx();
+    let context = get_current_trap_context();
     let scause = scause::read();
     match scause.cause() {
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             set_next_trigger();
             mark_current_suspend();
-            run_next_task();
+            schedule();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             error!("Illegal instruction");
-            mark_current_exited();
-            run_next_task();
+            mark_current_exit(-1);
+            schedule();
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::UserEnvCall) => {
-            ctxt.sepc += 4;
-            ctxt.x[10] = syscall(ctxt.x[17], [ctxt.x[10], ctxt.x[11], ctxt.x[12]]) as usize;
+            context.sepc += 4;
+            // current proccess maybe changed
+            let ret =
+                syscall(context.x[17], [context.x[10], context.x[11], context.x[12]]) as usize;
+            let context = get_current_trap_context();
+            context.x[10] = ret;
         }
         Trap::Exception(Exception::LoadPageFault) => {
             error!("Load page fault");
-            mark_current_exited();
-            run_next_task();
+            mark_current_exit(-1);
+            schedule();
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::StorePageFault) => {
-            error!("Store page fault");
-            mark_current_exited();
-            run_next_task();
+            error!(
+                "Store page fault. sepc=0x{:x}, stval=0x{:x}",
+                sepc::read(),
+                stval::read()
+            );
+            mark_current_exit(-1);
+            schedule();
+            unreachable!("{}:{}", file!(), line!());
         }
         Trap::Exception(Exception::StoreFault) => {
             error!("Store fault");
-            mark_current_exited();
-            run_next_task();
+            mark_current_exit(-1);
+            schedule();
+            unreachable!("{}:{}", file!(), line!());
         }
         _ => {
             error!(
                 "Unsupported Trap: cause = {:?}, stval = {:#x}\ncontext = {:?}",
                 scause.cause(),
                 stval::read(),
-                ctxt
+                context
             );
-            mark_current_exited();
-            run_next_task();
+            mark_current_exit(-1);
+            schedule();
+            unreachable!("{}:{}", file!(), column!());
         }
     }
     trap_return();
 }
 
 #[no_mangle]
-pub(crate) fn trap_return() -> ! {
+pub fn trap_return() -> ! {
     set_user_trap_entry();
     extern "C" {
         // strampoline == TRAMPOLINE
@@ -110,5 +126,10 @@ fn set_kernel_trap_entry() {
 
 #[no_mangle]
 fn trap_from_kernel() -> ! {
-    panic!("")
+    panic!(
+        "sepc=0x{:x}, stval={:?}, scause={:?}",
+        sepc::read(),
+        stval::read(),
+        scause::read().bits()
+    );
 }

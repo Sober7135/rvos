@@ -1,6 +1,7 @@
 use super::*;
 use core::fmt::{self, Write};
 
+const STDIN: usize = 0;
 const STDOUT: usize = 1;
 struct Stdout;
 
@@ -17,15 +18,24 @@ pub fn print(args: fmt::Arguments) {
 
 #[macro_export]
 macro_rules! print {
-    ($($($arg: tt)+)*) => {
-        $crate::console::print(format_args!($($($arg)+)?))
+    ($($arg: tt)*) => {
+        $crate::console::print(format_args!($($arg)?))
     };
 }
 
 #[macro_export]
 #[allow_internal_unstable(format_args_nl)]
 macro_rules! println {
+    () => {
+      $crate::print!("\n")
+    };
     ($($arg: tt)*) => {
         $crate::console::print(format_args_nl!($($arg)*))
     };
+}
+
+pub fn getchar() -> u8 {
+    let mut ch = [0u8; 1];
+    read(STDIN, &mut ch);
+    unsafe { *ch.get_unchecked(0) }
 }

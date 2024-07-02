@@ -2,14 +2,15 @@
 #![allow(unused)]
 use super::*;
 
-pub(crate) struct Eid;
+pub struct Eid;
 
 impl Eid {
-    pub(crate) const CONSOLE_PUTCHAR: usize = 0x01;
+    pub const CONSOLE_PUTCHAR: usize = 0x01;
+    pub const CONSOLE_GETCHAR: usize = 0x02;
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_0(eid: usize, fid: usize) -> usize {
+pub fn sbi_call_0(eid: usize) -> usize {
     let error;
     unsafe {
         asm!(
@@ -22,7 +23,7 @@ pub(crate) fn sbi_call_0(eid: usize, fid: usize) -> usize {
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_1(eid: usize, arg0: usize) -> usize {
+pub fn sbi_call_1(eid: usize, arg0: usize) -> usize {
     let error;
     unsafe {
         asm!(
@@ -35,7 +36,7 @@ pub(crate) fn sbi_call_1(eid: usize, arg0: usize) -> usize {
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_2(eid: usize, arg0: usize, arg1: usize) -> usize {
+pub fn sbi_call_2(eid: usize, arg0: usize, arg1: usize) -> usize {
     let error;
     unsafe {
         asm!(
@@ -49,7 +50,7 @@ pub(crate) fn sbi_call_2(eid: usize, arg0: usize, arg1: usize) -> usize {
 }
 
 #[inline(always)]
-pub(crate) fn sbi_call_3(eid: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
+pub fn sbi_call_3(eid: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
     let error;
     unsafe {
         asm!(

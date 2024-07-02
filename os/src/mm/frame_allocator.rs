@@ -1,7 +1,10 @@
 use core::fmt::Debug;
 
 use super::address::{PhysicalAddr, PhysicalPageNumber};
-use crate::{config::MEMORY_END, sync::UpSafeCell};
+use crate::{
+    config::{MEMORY_END, PAGE_SIZE},
+    sync::Mutex,
+};
 use alloc::vec::Vec;
 use lazy_static::*;
 use log::info;
@@ -9,33 +12,28 @@ use log::info;
 type FrameAllocatorImpl = StackAllocator;
 
 lazy_static! {
-    static ref FRAME_ALLOCATOR: UpSafeCell<FrameAllocatorImpl> = {
+    static ref FRAME_ALLOCATOR: Mutex<FrameAllocatorImpl> = {
         extern "C" {
             fn ekernel();
         }
-        unsafe {
-            // compute the first ppn and last ppn
-            UpSafeCell::new(FrameAllocatorImpl::new(
-                PhysicalAddr::from(ekernel as usize).ceil(),
-                PhysicalAddr::from(MEMORY_END).floor(),
-            ))
-        }
+        // compute the first ppn and last ppn
+        Mutex::new(FrameAllocatorImpl::new(
+            PhysicalAddr::from(ekernel as usize).ceil(),
+            PhysicalAddr::from(MEMORY_END).floor(),
+        ))
     };
 }
 
-pub(crate) fn frame_alloc() -> Option<FrameTracker> {
-    FRAME_ALLOCATOR
-        .exclusive_access()
-        .alloca()
-        .map(FrameTracker::new)
+pub fn frame_alloc() -> Option<FrameTracker> {
+    FRAME_ALLOCATOR.lock().alloca().map(FrameTracker::new)
 }
 
-pub(crate) fn frame_dealloc(ppn: PhysicalPageNumber) {
-    FRAME_ALLOCATOR.exclusive_access().dealloca(ppn)
+pub fn frame_dealloc(ppn: PhysicalPageNumber) {
+    FRAME_ALLOCATOR.lock().dealloca(ppn)
 }
 
-pub(crate) struct FrameTracker {
-    pub(crate) ppn: PhysicalPageNumber,
+pub struct FrameTracker {
+    pub ppn: PhysicalPageNumber,
 }
 
 impl Debug for FrameTracker {
@@ -57,12 +55,15 @@ impl Drop for FrameTracker {
 }
 
 impl FrameTracker {
-    pub(crate) fn new(ppn: PhysicalPageNumber) -> Self {
+    pub fn new(ppn: PhysicalPageNumber) -> Self {
+        let pa = PhysicalAddr::from(ppn).0 as *mut u8;
+        unsafe { pa.write_bytes(0, PAGE_SIZE) }
+
         Self { ppn }
     }
 }
 
-pub(crate) trait FrameAllocator {
+pub trait FrameAllocator {
     fn new(start: PhysicalPageNumber, end: PhysicalPageNumber) -> Self;
     fn alloca(&mut self) -> Option<PhysicalPageNumber>;
     fn dealloca(&mut self, ppn: PhysicalPageNumber);
@@ -105,7 +106,7 @@ impl FrameAllocator for StackAllocator {
 }
 
 #[allow(unused)]
-pub(crate) fn frame_allocator_test() {
+pub fn frame_allocator_test() {
     let mut v: Vec<FrameTracker> = Vec::new();
     for i in 0..5 {
         let frame = frame_alloc().unwrap();

@@ -1,3 +1,2 @@
-mod up;
-
-pub(super) use up::UpSafeCell;
+mod mutex;
+pub use mutex::Mutex;

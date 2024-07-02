@@ -1,19 +1,16 @@
-use crate::config::HEAP_ORDER_SIZE;
-use crate::config::KERNEL_HEAP_SIZE;
+use crate::config::{HEAP_ORDER_SIZE, USER_HEAP_SIZE};
 use buddy_system_allocator::LockedHeap;
-use log::info;
 
 #[global_allocator]
 static HEAP_ALLOCATOR: LockedHeap<HEAP_ORDER_SIZE> = LockedHeap::new();
 
-static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0u8; KERNEL_HEAP_SIZE];
+static mut HEAP_SPACE: [u8; USER_HEAP_SIZE] = [0; USER_HEAP_SIZE];
 
 pub fn init_heap() {
-    info!("in init_heap");
     unsafe {
         HEAP_ALLOCATOR
             .lock()
-            .init(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE)
+            .init(HEAP_SPACE.as_ptr() as usize, USER_HEAP_SIZE);
     }
 }
 
@@ -33,7 +30,7 @@ pub fn heap_test() {
 
     let bss_range = sbss as usize..ebss as usize;
     let mut v = vec![];
-    for i in 0..1145 {
+    for i in 0..114 {
         v.push(i);
     }
     for (i, item) in v.iter().enumerate() {
@@ -44,6 +41,4 @@ pub fn heap_test() {
     let b = Box::new(114514);
     assert_eq!(*b, 114514);
     assert!(bss_range.contains(&(b.as_ref() as *const _ as usize)));
-
-    info!("[kernel] HEAP TEST PASSED!");
 }

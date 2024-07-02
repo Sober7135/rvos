@@ -11,6 +11,10 @@ impl Syscall {
     const EXIT: usize = 93;
     const YIELD: usize = 124;
     const GETTIME: usize = 169;
+    const GETPID: usize = 172;
+    const FORK: usize = 220;
+    const EXEC: usize = 221;
+    const WAITPID: usize = 260;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -29,18 +33,38 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     ret
 }
 
-pub(crate) fn sys_write(fd: usize, buf: &[u8]) -> isize {
+pub fn sys_read(fd: usize, buf: &mut [u8]) -> isize {
+    syscall(Syscall::READ, [fd, buf.as_mut_ptr() as usize, buf.len()])
+}
+
+pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
     syscall(Syscall::WRITE, [fd, buf.as_ptr() as usize, buf.len()])
 }
 
-pub(crate) fn sys_exit(state: i32) -> isize {
+pub fn sys_exit(state: i32) -> isize {
     syscall(Syscall::EXIT, [state as usize, 0, 0])
 }
 
-pub(crate) fn sys_yield() -> isize {
+pub fn sys_yield() -> isize {
     syscall(Syscall::YIELD, [0, 0, 0])
 }
 
-pub(crate) fn sys_get_time() -> isize {
+pub fn sys_get_time() -> isize {
     syscall(Syscall::GETTIME, [0, 0, 0])
+}
+
+pub fn sys_getpid() -> isize {
+    syscall(Syscall::GETPID, [0, 0, 0])
+}
+
+pub fn sys_fork() -> isize {
+    syscall(Syscall::FORK, [0, 0, 0])
+}
+
+pub fn sys_exec(path: &str) -> isize {
+    syscall(Syscall::EXEC, [path.as_ptr() as usize, 0, 0])
+}
+
+pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
+    syscall(Syscall::WAITPID, [pid as usize, exit_code_ptr as usize, 0])
 }
