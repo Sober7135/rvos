@@ -174,6 +174,12 @@ impl VirtualAddr {
     pub fn ceil(&self) -> VirtualPageNumber {
         VirtualPageNumber((self.0 + PAGE_SIZE - 1) / PAGE_SIZE)
     }
+    pub fn aligned(&self) -> bool {
+        if self.0 % PAGE_SIZE != 0 {
+           return false;
+        }
+        true
+    }
 }
 
 pub type VPNRange = SimpleRange<VirtualPageNumber>;

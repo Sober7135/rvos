@@ -1,5 +1,5 @@
 mod context;
-mod manager;
+pub mod manager;
 mod pid;
 pub mod processor;
 mod state;
