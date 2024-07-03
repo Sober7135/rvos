@@ -2,8 +2,7 @@ use crate::{
     mm::transfer_byte_buffer,
     print,
     process::{
-        manager::{mmap, munmap},
-        mark_current_exit, mark_current_suspend,
+        mark_current_exit, mark_current_suspend, mmap, munmap,
         processor::{get_current_task, schedule},
     },
     sbi::console_getchar,

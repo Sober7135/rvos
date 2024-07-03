@@ -18,6 +18,9 @@ const APPS: &[(&str, i32)] = &[
     ("priv_inst\0", -1),
     ("sleep\0", 0),
     ("store_fault\0", -1),
+    ("mmap\0", 0),
+    ("mmap2\0", -1),
+    ("mmap3\0", 0),
 ];
 
 #[no_mangle]

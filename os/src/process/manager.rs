@@ -31,22 +31,7 @@ impl TaskManager {
         self.runnable_queue.pop_front()
     }
 
-    pub fn mmap(&mut self, start: usize, len: usize, port: usize) -> Result<(), ()> {
-        if let Some(n) = self.runnable_queue.pop_front() {
-            n.inner.lock().memory_set.mmap(start, len, port)
-        } else {
-            Err(())
-        }
-    }
-
-    /// Unmap a area for the current 'Running' task's program
-    pub fn munmap(&mut self, start: usize, len: usize) -> Result<(), ()> {
-        if let Some(n) = self.runnable_queue.pop_front() {
-            n.inner.lock().memory_set.munmap(start, len)
-        } else {
-            Err(())
-        }
-    }
+   
 }
 
 pub fn add_task(task: Arc<TaskControlBlock>) {
@@ -57,11 +42,3 @@ pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     TASK_MANAGER.lock().fetch()
 }
 
-pub fn mmap(start: usize, len: usize, port: usize) -> Result<(), ()> {
-    TASK_MANAGER.lock().mmap(start, len, port)
-}
-
-/// Unmap a area for the current 'Running' task's program
-pub fn munmap(start: usize, len: usize) -> Result<(), ()> {
-    TASK_MANAGER.lock().munmap(start, len)
-}

@@ -96,12 +96,12 @@ impl TaskControlBlock {
 
     // TODO
     //Map a new area
-    pub fn mmap(&mut self, start: usize, len: usize, port: usize) -> Result<(), ()> {
+    pub fn mmap(&self, start: usize, len: usize, port: usize) -> Result<(), ()> {
         self.inner.lock().memory_set.mmap(start, len, port)
     }
 
     /// Unmap a area.
-    pub fn munmap(&mut self, start: usize, len: usize) -> Result<(), ()> {
+    pub fn munmap(&self, start: usize, len: usize) -> Result<(), ()> {
         self.inner.lock().memory_set.munmap(start, len)
     }
     pub fn exec(&self, path: *const u8) -> isize {
