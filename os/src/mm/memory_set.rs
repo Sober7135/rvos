@@ -431,7 +431,7 @@ impl MemorySet {
         let start_va = VirtualAddr::from(start);
         let end_va = VirtualAddr::from(start + len);
         // check
-        if let Some(_) = self.areas.iter().find(|area| {
+        if self.areas.iter().any(|area| {
             let range = &area.vpn_range;
             let range_start = range.get_start();
             let range_end = range.get_end();

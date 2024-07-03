@@ -1,5 +1,5 @@
 mod context;
-pub mod manager;
+mod manager;
 mod pid;
 pub mod processor;
 mod state;
@@ -72,4 +72,22 @@ pub fn mark_current_suspend() {
     inner.state = TaskState::Runnable;
     drop(inner);
     add_task(current);
+}
+
+pub fn mmap(start: usize, len: usize, prot: usize) -> Result<(), ()> {
+    get_current_task()
+        .unwrap()
+        .inner
+        .lock()
+        .memory_set
+        .mmap(start, len, prot)
+}
+
+pub fn munmap(start: usize, len: usize) -> Result<(), ()> {
+    get_current_task()
+        .unwrap()
+        .inner
+        .lock()
+        .memory_set
+        .munmap(start, len)
 }

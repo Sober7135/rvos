@@ -76,5 +76,5 @@ pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
 }
 
 pub fn sys_munmap(start: usize, len: usize) -> isize {
-    syscall(Syscall::MUNMAP, [start, len,0])
+    syscall(Syscall::MUNMAP, [start, len, 0])
 }

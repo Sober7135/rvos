@@ -2,8 +2,7 @@ use crate::{
     mm::transfer_byte_buffer,
     print,
     process::{
-        manager::{mmap, munmap},
-        mark_current_exit, mark_current_suspend,
+        mark_current_exit, mark_current_suspend, mmap, munmap,
         processor::{get_current_task, schedule},
     },
     sbi::console_getchar,
@@ -131,7 +130,7 @@ fn sys_waitpid(pid: isize, wstatus: *mut i32) -> isize {
 }
 
 pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
-    if let Ok(_) = mmap(start, len, port) {
+    if mmap(start, len, port).is_ok() {
         0
     } else {
         -1
@@ -139,7 +138,7 @@ pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
 }
 
 pub fn sys_munmap(start: usize, len: usize) -> isize {
-    if let Ok(_) = munmap(start, len) {
+    if munmap(start, len).is_ok() {
         0
     } else {
         -1

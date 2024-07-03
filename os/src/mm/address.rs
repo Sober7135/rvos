@@ -176,7 +176,7 @@ impl VirtualAddr {
     }
     pub fn aligned(&self) -> bool {
         if self.0 % PAGE_SIZE != 0 {
-           return false;
+            return false;
         }
         true
     }
