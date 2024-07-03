@@ -118,7 +118,7 @@ impl PageTable {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
-    fn translate_va(&self, va: VirtualAddr) -> Option<PhysicalAddr> {
+    pub fn translate_va(&self, va: VirtualAddr) -> Option<PhysicalAddr> {
         self.translate(va.into())
             .map(|ppn| (PhysicalAddr::from(ppn.get_ppn()).0 + va.get_offset()).into())
     }

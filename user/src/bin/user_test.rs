@@ -8,6 +8,7 @@ use user_lib::{exec, fork, waitpid};
 
 // name exit_code
 const APPS: &[(&str, i32)] = &[
+    ("file\0", 0),
     ("fork_test\0", 0),
     ("fork_test2\0", 0),
     ("matrix\0", 0),
@@ -41,7 +42,7 @@ fn main() -> i32 {
             );
             if exit_code == *code {
                 passed += 1;
-                println!("[{}] Test {} OK!", file!(), app);
+                println!("[{}]\x1b[32m Test {} OK!\x1b[0m", file!(), app);
             } else {
                 println!("[{}] Test {} Failed!", file!(), app);
             }
@@ -49,9 +50,14 @@ fn main() -> i32 {
         println!();
     }
     if passed == APPS.len() {
-        println!("[{}] All Tests OK!", file!());
+        println!("[{}]\x1b[32m All Tests OK!\x1b[0m", file!());
     } else {
-        println!("[{}] {}/{} Tests OK!", file!(), passed, APPS.len());
+        println!(
+            "[{}]\x1b[31m{}/{} Tests OK!\x1b[0m",
+            file!(),
+            passed,
+            APPS.len()
+        );
     }
     0
 }

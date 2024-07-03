@@ -9,6 +9,7 @@ use xmas_elf::program::ProgramHeader;
 use crate::{
     config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE},
     mm::address::{PhysicalAddr, StepByOne},
+    qemu::MMIO,
 };
 
 use super::{
@@ -288,6 +289,19 @@ impl MemorySet {
             None,
         );
         info!("Mapped physical memory");
+        println!("mapping memory-mapped registers");
+        for pair in MMIO {
+            mm_set.push(
+                MapArea::new(
+                    pair.0.into(),
+                    (pair.0 + pair.1).into(),
+                    MapType::Identical,
+                    MapPermission::R | MapPermission::W,
+                ),
+                None,
+            );
+        }
+
         mm_set
     }
 

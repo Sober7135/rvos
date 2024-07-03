@@ -11,7 +11,7 @@ use lazy_static::lazy_static;
 use manager::add_task;
 
 use crate::config::*;
-use crate::loader::get_app_data_by_name;
+use crate::fs::{open_file, OpenFlags};
 use crate::mm::*;
 use crate::sbi::shutdown;
 use context::TaskContext;
@@ -21,9 +21,10 @@ use state::TaskState;
 use task::TaskControlBlock;
 
 lazy_static! {
-    static ref INIT_PROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::from_elf(
-        get_app_data_by_name("init_proc").unwrap()
-    ));
+    static ref INIT_PROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::from_elf({
+        let inode = open_file("init_proc", OpenFlags::RDONLY).expect("cannot found init_proc");
+        &inode.read_all()
+    }));
 }
 
 pub fn add_init_proc() {

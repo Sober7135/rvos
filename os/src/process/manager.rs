@@ -9,7 +9,6 @@ lazy_static! {
 }
 
 // FCFS, first come first served
-#[derive(Debug)]
 pub struct TaskManager {
     runnable_queue: VecDeque<Arc<TaskControlBlock>>,
 }

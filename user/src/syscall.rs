@@ -6,6 +6,8 @@ use core::arch::asm;
 struct Syscall;
 
 impl Syscall {
+    const OPEN: usize = 56;
+    const CLOSE: usize = 57;
     const READ: usize = 63;
     const WRITE: usize = 64;
     const EXIT: usize = 93;
@@ -31,6 +33,14 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
         )
     }
     ret
+}
+
+pub fn sys_open(path: *const u8, flags: u32) -> isize {
+    syscall(Syscall::OPEN, [path as usize, flags as usize, 0])
+}
+
+pub fn sys_close(fd: usize) -> isize {
+    syscall(Syscall::CLOSE, [fd as usize, 0, 0])
 }
 
 pub fn sys_read(fd: usize, buf: &mut [u8]) -> isize {

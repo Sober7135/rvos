@@ -15,11 +15,13 @@ use process::processor::schedule;
 #[macro_use]
 mod console;
 mod config;
+mod drivers;
+mod fs;
 mod lang_items;
-mod loader;
 mod logger;
 mod mm;
 mod process;
+mod qemu;
 mod sbi;
 mod stack_trace;
 mod sync;
@@ -28,7 +30,6 @@ mod timer;
 mod trap;
 
 global_asm!(include_str!("entry.asm"));
-global_asm!(include_str!("link_app.S"));
 
 fn clear_bss() {
     extern "C" {
@@ -47,7 +48,7 @@ fn rust_main() {
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    loader::init();
+    fs::list_apps();
     process::add_init_proc();
     schedule();
 }

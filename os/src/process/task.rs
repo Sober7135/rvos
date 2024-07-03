@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use crate::{
-    loader::get_app_data_by_name,
+    fs::{File, Stdin, Stdout},
     process::{mark_current_suspend, processor::schedule},
     sync::Mutex,
     trap::TrapContext,
@@ -20,7 +20,6 @@ use super::{
     translate_refmut, translate_str, MemorySet, PhysicalPageNumber, VirtualAddr, TRAP_CONTEXT,
 };
 
-#[derive(Debug)]
 pub struct TaskControlBlock {
     // immutable
     pub pid: PidHandle,
@@ -29,7 +28,6 @@ pub struct TaskControlBlock {
     pub inner: Mutex<TaskControlBlockInner>,
 }
 
-#[derive(Debug)]
 pub struct TaskControlBlockInner {
     pub state: TaskState,
     context: TaskContext,
@@ -41,6 +39,7 @@ pub struct TaskControlBlockInner {
     pub parent: Option<Weak<TaskControlBlock>>,
     pub children: Vec<Arc<TaskControlBlock>>,
     pub exit_code: i32,
+    pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
 }
 
 impl TaskControlBlock {
@@ -68,6 +67,14 @@ impl TaskControlBlock {
                 parent: None,
                 children: Vec::new(),
                 exit_code: 0,
+                fd_table: vec![
+                    // 0 -> stdin
+                    Some(Arc::new(Stdin)),
+                    // 1 -> stdout
+                    Some(Arc::new(Stdout)),
+                    // 2 -> stderr
+                    Some(Arc::new(Stdout)),
+                ],
             }),
         };
 
@@ -95,31 +102,26 @@ impl TaskControlBlock {
     }
 
     // TODO
-    pub fn exec(&self, path: *const u8) -> isize {
+    pub fn exec(&self, data: &[u8]) -> isize {
         // debug!("");
         let mut inner = self.inner.lock();
-        let path = translate_str(inner.get_user_token(), path);
 
-        if let Some(data) = get_app_data_by_name(&path) {
-            let (mm_set, user_sp, entry_point) = MemorySet::from_elf(data);
-            let trap_context_ppn = mm_set
-                .translate(VirtualAddr::from(TRAP_CONTEXT).into())
-                .unwrap()
-                .get_ppn();
+        let (mm_set, user_sp, entry_point) = MemorySet::from_elf(data);
+        let trap_context_ppn = mm_set
+            .translate(VirtualAddr::from(TRAP_CONTEXT).into())
+            .unwrap()
+            .get_ppn();
 
-            inner.memory_set = mm_set;
-            inner.trap_context_ppn = trap_context_ppn;
-            inner.base_size = user_sp;
-            *inner.get_trap_context() = TrapContext::app_init_context(
-                entry_point,
-                kernel_stack_position(self.pid.0).1,
-                user_sp,
-            );
+        inner.memory_set = mm_set;
+        inner.trap_context_ppn = trap_context_ppn;
+        inner.base_size = user_sp;
+        *inner.get_trap_context() = TrapContext::app_init_context(
+            entry_point,
+            kernel_stack_position(self.pid.0).1,
+            user_sp,
+        );
 
-            0
-        } else {
-            -1
-        }
+        0
     }
 
     // TODO lazy
@@ -135,6 +137,12 @@ impl TaskControlBlock {
             .unwrap()
             .get_ppn();
 
+        let new_fd_table = parent_inner
+            .fd_table
+            .iter()
+            .map(|file| file.clone())
+            .collect();
+
         let inner = TaskControlBlockInner {
             state: TaskState::Runnable,
             context: TaskContext::goto_trap_return(kstack_top), // TODO
@@ -144,6 +152,7 @@ impl TaskControlBlock {
             parent: Some(Arc::downgrade(self)),
             children: Vec::new(),
             exit_code: 0,
+            fd_table: new_fd_table,
         };
 
         inner.get_trap_context().kernel_sp = kstack_top;
@@ -166,7 +175,7 @@ impl TaskControlBlock {
             return -2;
         }
         drop(inner);
-        let mut idx = 0;
+        let idx;
         loop {
             inner = self.inner.lock();
             if let Some((index, _)) = inner
@@ -221,5 +230,14 @@ impl TaskControlBlockInner {
 
     pub fn get_task_context_ptr_mut(&mut self) -> *mut TaskContext {
         &mut self.context as *mut TaskContext
+    }
+
+    pub fn alloc_fd(&mut self) -> usize {
+        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
+            fd
+        } else {
+            self.fd_table.push(None);
+            self.fd_table.len() - 1
+        }
     }
 }

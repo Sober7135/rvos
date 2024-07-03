@@ -188,6 +188,12 @@ impl StepByOne for VirtualPageNumber {
     }
 }
 
+impl StepByOne for PhysicalPageNumber {
+    fn step(&mut self) {
+        self.0 += 1;
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct SimpleRange<T>
 where

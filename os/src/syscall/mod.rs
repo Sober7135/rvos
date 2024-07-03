@@ -1,17 +1,18 @@
 use crate::{
-    mm::transfer_byte_buffer,
-    print,
+    fs::{open_file, OpenFlags},
+    mm::{transfer_byte_buffer, translate_str, UserBuffer},
     process::{
         mark_current_exit, mark_current_suspend,
-        processor::{get_current_task, schedule},
+        processor::{get_current_task, get_current_user_token, schedule},
     },
-    sbi::console_getchar,
     timer::get_time_ms,
 };
 pub struct Syscall;
 
 // https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/unistd.h
 impl Syscall {
+    const OPEN: usize = 56;
+    const CLOSE: usize = 57;
     const READ: usize = 63;
     const WRITE: usize = 64;
     const EXIT: usize = 93;
@@ -27,6 +28,8 @@ impl Syscall {
 // return in a0
 pub fn syscall(id: usize, args: [usize; 3]) -> isize {
     match id {
+        Syscall::OPEN => sys_open(args[0] as *const u8, args[1] as u32),
+        Syscall::CLOSE => sys_close(args[0]),
         Syscall::WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         Syscall::READ => sys_read(args[0], args[1] as *const u8, args[2]),
         Syscall::EXIT => sys_exit(args[0] as i32),
@@ -40,46 +43,67 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
     }
 }
 
-const FD_STDOUT: usize = 1;
-const FD_STDIN: usize = 0;
+fn sys_open(path: *const u8, flags: u32) -> isize {
+    let task = get_current_task().unwrap();
+    let token = get_current_user_token();
+    let path = translate_str(token, path);
+
+    if let Some(inode) = open_file(&path, OpenFlags::from_bits(flags).unwrap()) {
+        let mut inner = task.inner.lock();
+        let fd = inner.alloc_fd();
+        inner.fd_table[fd] = Some(inode);
+        fd as isize
+    } else {
+        -1
+    }
+}
+
+fn sys_close(fd: usize) -> isize {
+    let task = get_current_task().unwrap();
+    let mut inner = task.inner.lock();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if inner.fd_table[fd].is_none() {
+        return -1;
+    }
+    inner.fd_table[fd].take();
+    0
+}
 
 fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
-    match fd {
-        FD_STDIN => {
-            assert_eq!(len, 1, "current we only support one character");
-            let mut c;
-            loop {
-                c = console_getchar();
-                if c == 0 {
-                    mark_current_suspend();
-                    schedule();
-                } else {
-                    break;
-                }
-            }
-            let ch = c as u8;
-            unsafe {
-                transfer_byte_buffer(buf, len)
-                    .get_unchecked_mut(0)
-                    .as_mut_ptr()
-                    .write_volatile(ch)
-            }
-            1
+    let task = get_current_task().unwrap();
+    let inner = task.inner.lock();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if let Some(file) = &inner.fd_table[fd] {
+        let file = file.clone();
+        if !file.readable() {
+            return -1;
         }
-        _ => panic!("current we don't support other fd"),
+        drop(inner);
+        file.read(UserBuffer::new(transfer_byte_buffer(buf, len))) as isize
+    } else {
+        -1
     }
 }
 
 fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
-    match fd {
-        FD_STDOUT => {
-            let buffer = transfer_byte_buffer(buf, len);
-            for buf in buffer {
-                print!("{}", core::str::from_utf8(buf).unwrap());
-            }
-            len as isize
+    let task = get_current_task().unwrap();
+    let inner = task.inner.lock();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if let Some(file) = &inner.fd_table[fd] {
+        let file = file.clone();
+        if !file.writable() {
+            return -1;
         }
-        _ => panic!("Unsupport fd"),
+        drop(inner);
+        file.write(UserBuffer::new(transfer_byte_buffer(buf, len))) as isize
+    } else {
+        -1
     }
 }
 
@@ -116,7 +140,15 @@ fn sys_fork() -> isize {
 }
 
 fn sys_exec(path: *const u8) -> isize {
-    get_current_task().unwrap().exec(path)
+    // open file
+    let token = get_current_user_token();
+    let path = translate_str(token, path);
+    if let Some(inode) = open_file(&path, OpenFlags::RDONLY) {
+        let data = inode.read_all();
+        get_current_task().unwrap().exec(&data)
+    } else {
+        -1
+    }
 }
 
 // we dont support option

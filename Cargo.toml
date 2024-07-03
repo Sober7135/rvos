@@ -1,5 +1,5 @@
 [workspace]
-members = ["os", "user"]
+members = ["os", "user", "fs", "fs-fuse"]
 
 resolver = "2"
 
