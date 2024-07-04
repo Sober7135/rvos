@@ -5,7 +5,7 @@ SECTIONS
 {
   . = BASE_ADDRESS;
   stext = .;
-  .text : { *(.text) *(.text.*) }
+  .text : { *(.text.entry) *(.text) *(.text.*) }
   . = ALIGN(4K);
   etext = .;
 
