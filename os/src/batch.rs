@@ -1,4 +1,4 @@
-use crate::{sbi::shutdown, sync::UpSafeCell, trap::TrapContext};
+use crate::{println, sbi::shutdown, sync::UpSafeCell, trap::TrapContext};
 use core::arch::asm;
 use lazy_static::lazy_static;
 use log::{info, trace};
@@ -72,7 +72,7 @@ impl AppManager {
             shutdown(false);
         }
 
-        info!("[kernel] load app_{}", app_id);
+        info!("[kernel] load and then run app_{}", app_id);
         unsafe {
             // clear app area
             core::ptr::write_bytes(APP_BASE_ADDRESS as *mut u8, 0, APP_SIZE_LIMIT);
@@ -104,9 +104,9 @@ lazy_static! {
             // num_app + 1 to copy the last app's end address
             core::ptr::copy(num_app_ptr.add(1), apps_start.as_mut_ptr(), num_app + 1);
             AppManager {
-                num_app: num_app,
+                num_app,
                 current_app: 0,
-                apps_start: apps_start,
+                apps_start,
             }
         })
     };
@@ -127,7 +127,6 @@ pub(crate) fn run_next_app() -> ! {
     extern "C" {
         fn __restore(addr: usize);
     }
-    info!("In run_next_app");
     unsafe {
         __restore(KERNEL_STACK.push_context(TrapContext::app_init_context(
             APP_BASE_ADDRESS,

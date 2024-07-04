@@ -1,11 +1,10 @@
 use core::arch::asm;
-use core::ptr;
 
 pub(crate) unsafe fn print_stack_trace() {
     let mut fp: *const usize;
     asm!("mv {}, fp", out(reg) fp);
     println!("== Begin stack trace ==");
-    while fp != ptr::null() {
+    while fp.is_null() {
         let saved_ra = *fp.sub(1);
         let saved_fp = *fp.sub(2);
 

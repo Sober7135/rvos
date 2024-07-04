@@ -63,7 +63,6 @@ fn rust_main() {
 
     println!("Hello, World!");
 
-    panic!("THIS IS PANIC");
     trap::init();
     batch::init();
     batch::run_next_app();

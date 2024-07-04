@@ -21,7 +21,9 @@ impl log::Log for Logger {
             log::Level::Error => 31, // red
         };
         println!(
-            "\u{1B}[0;{}m[{:<5}]\u{1B}[0m {}",
+            "{}:{} \u{1B}[0;{}m[{}]\u{1B}[0m {}",
+            record.file().unwrap_or("unknown"),
+            record.line().unwrap_or(0),
             color,
             record.level(),
             record.args()

@@ -1,4 +1,3 @@
-use log::info;
 use riscv::register::sstatus::{self, SPP};
 use super::*;
 
