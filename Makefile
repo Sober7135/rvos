@@ -10,7 +10,7 @@ vi = nvim --noplugin
 
 fs-img: user
 		@rm -rf $(FS_IMG)
-		@cargo run --$(MODE) --package=fs-fuse --target=x86_64-unknown-linux-gnu -- -s user/src/bin -t target/$(TARGET)/$(MODE)
+		@cargo run --$(MODE) --package=fs-fuse -- -s user/src/bin -t target/$(TARGET)/$(MODE)
 
 kernel: $(KERNEL_BIN)
 
