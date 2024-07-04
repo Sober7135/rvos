@@ -74,3 +74,21 @@ pub fn mark_current_suspend() {
     drop(inner);
     add_task(current);
 }
+
+pub fn mmap(start: usize, len: usize, prot: usize) -> Result<(), ()> {
+    get_current_task()
+        .unwrap()
+        .inner
+        .lock()
+        .memory_set
+        .mmap(start, len, prot)
+}
+
+pub fn munmap(start: usize, len: usize) -> Result<(), ()> {
+    get_current_task()
+        .unwrap()
+        .inner
+        .lock()
+        .memory_set
+        .munmap(start, len)
+}

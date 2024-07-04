@@ -2,7 +2,7 @@ use crate::{
     fs::{open_file, OpenFlags},
     mm::{transfer_byte_buffer, translate_str, UserBuffer},
     process::{
-        mark_current_exit, mark_current_suspend,
+        mark_current_exit, mark_current_suspend, mmap, munmap,
         processor::{get_current_task, get_current_user_token, schedule},
     },
     timer::get_time_ms,
@@ -22,6 +22,8 @@ impl Syscall {
     const FORK: usize = 220; // clone ???
     const EXEC: usize = 221;
     const WAITPID: usize = 260; // wait4 in unistd.h
+    const MMAP: usize = 270;
+    const MUNMAP: usize = 271;
 }
 
 // a0-a2 for arguments, a7 for syscall id
@@ -39,6 +41,9 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
         Syscall::FORK => sys_fork(),
         Syscall::EXEC => sys_exec(args[0] as *const u8),
         Syscall::WAITPID => sys_waitpid(args[0] as isize, args[1] as *mut i32),
+        Syscall::MMAP => sys_mmap(args[0], args[1], args[2]),
+        Syscall::MUNMAP => sys_munmap(args[0], args[1]),
+
         _ => panic!("unsupport system call!!!"),
     }
 }
@@ -154,4 +159,20 @@ fn sys_exec(path: *const u8) -> isize {
 // we dont support option
 fn sys_waitpid(pid: isize, wstatus: *mut i32) -> isize {
     get_current_task().unwrap().waitpid(pid, wstatus)
+}
+
+pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
+    if mmap(start, len, port).is_ok() {
+        0
+    } else {
+        -1
+    }
+}
+
+pub fn sys_munmap(start: usize, len: usize) -> isize {
+    if munmap(start, len).is_ok() {
+        0
+    } else {
+        -1
+    }
 }

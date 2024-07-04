@@ -100,3 +100,11 @@ pub fn sleep(len_ms: usize) -> isize {
     }
     0
 }
+
+pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
+    sys_mmap(start, len, prot)
+}
+
+pub fn munmap(start: usize, len: usize) -> isize {
+    sys_munmap(start, len)
+}
